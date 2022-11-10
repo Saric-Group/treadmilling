@@ -1,1 +1,1 @@
-Molecular dynamics model for treadmilling filaments
+Dynamic Monte Carlo model for treadmilling filaments
