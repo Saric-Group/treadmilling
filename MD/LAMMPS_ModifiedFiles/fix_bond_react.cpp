@@ -230,6 +230,7 @@ FixBondReact::FixBondReact(LAMMPS *lmp, int narg, char **arg) :
   memory->create(custom_charges_fragid,nreacts,"bond/react:custom_charges_fragid");
   memory->create(create_atoms_flag,nreacts,"bond/react:create_atoms_flag");
   memory->create(modify_create_fragid,nreacts,"bond/react:modify_create_fragid");
+  memory->create(modify_create_nucrand,nreacts,"bond/react:modify_create_nucrand");          // added vector modify_create_nucrand to store random nucleation flags for each reaction - Chris 20/02/2023
   memory->create(overlapsq,nreacts,"bond/react:overlapsq");
   memory->create(molecule_keyword,nreacts,"bond/react:molecule_keyword");
   memory->create(nconstraints,nreacts,"bond/react:nconstraints");
@@ -255,6 +256,7 @@ FixBondReact::FixBondReact(LAMMPS *lmp, int narg, char **arg) :
     custom_charges_fragid[i] = -1;
     create_atoms_flag[i] = 0;
     modify_create_fragid[i] = -1;
+    modify_create_nucrand[i] = -1;          // added vector modify_create_nucrand to store random nucleation flags for each reaction - Chris 20/02/2023
     overlapsq[i] = 0;
     molecule_keyword[i] = OFF;
     nconstraints[i] = 0;
@@ -425,6 +427,12 @@ FixBondReact::FixBondReact(LAMMPS *lmp, int narg, char **arg) :
               if (modify_create_fragid[rxn] < 0) error->one(FLERR,"Bond/react: Molecule fragment for "
                                                              "'modify_create' keyword does not exist");
             }
+            iarg += 2;
+          } else if (strcmp(arg[iarg],"nuc") == 0) {                                                // Adding a flag "nuc" to nucleate the new dimer in a random position within the box, independent of the position of the nucleator
+            if (iarg+2 > narg) error->all(FLERR,"Illegal fix bond/react command: "
+                                          "'modify_create' has too few arguments");
+            if (strcmp(arg[iarg+1],"no") == 0) modify_create_nucrand[rxn] = -1; //default
+            else if (strcmp(arg[iarg+1],"yes") == 0) modify_create_nucrand[rxn] = 1;
             iarg += 2;
           } else if (strcmp(arg[iarg],"overlap") == 0) {
             if (iarg+2 > narg) error->all(FLERR,"Illegal fix bond/react command: "
@@ -625,6 +633,7 @@ FixBondReact::~FixBondReact()
   memory->destroy(constraintstr);
   memory->destroy(create_atoms_flag);
   memory->destroy(modify_create_fragid);
+  memory->destroy(modify_create_nucrand);          // added vector modify_create_nucrand to store random nucleation flags for each reaction - Chris 20/02/2023
   memory->destroy(overlapsq);
 
   memory->destroy(iatomtype);
@@ -3584,7 +3593,9 @@ int FixBondReact::insert_atoms(tagint **my_mega_glove, int iupdate)
 
     double **xfrozen; // coordinates for the "frozen" target molecule
     double **xmobile; // coordinates for the "mobile" molecule
+    double **oxfrozen; // OG coordinates for the "frozen" target molecule (for access after random redefinition if modify_create_nucrand is used) -- Chris 20/02/2023
     memory->create(xfrozen,n2superpose,3,"bond/react:xfrozen");
+    memory->create(oxfrozen,n2superpose,3,"bond/react:oxfrozen"); // OG coordinates for the "frozen" target molecule (for access after random redefinition if modify_create_nucrand is used) -- Chris 20/02/2023
     memory->create(xmobile,n2superpose,3,"bond/react:xmobile");
     tagint iatom;
     tagint iref = -1; // choose first atom as reference
@@ -3598,6 +3609,7 @@ int FixBondReact::insert_atoms(tagint **my_mega_glove, int iupdate)
           printf("WARNING: eligible atoms skipped for created-atoms fit on %d\n",me);
           continue;
         }
+        printf("      reaction %d: nucleate randomly? (1 = yes, -1 = no) -  %d\n", rxnID, modify_create_nucrand[rxnID]);
         printf("          fit_incr = %d\n", fit_incr);
         iatom = atom->map(my_mega_glove[ipre+1][iupdate]);
         printf("            before closest image atom ID = %d - position = [%.2f, %.2f, %.2f]\n", atom->tag[iatom], atom->x[iatom][0], atom->x[iatom][1], atom->x[iatom][2]);
@@ -3607,8 +3619,31 @@ int FixBondReact::insert_atoms(tagint **my_mega_glove, int iupdate)
         for (int k = 0; k < 3; k++) {
           xfrozen[fit_incr][k] = x[iatom][k];
           xmobile[fit_incr][k] = twomol->x[j][k];
+          // printf("Defining old positions as well...\n");
+          oxfrozen[fit_incr][k] = x[iatom][k];  // OG coordinates for the "frozen" target molecule (for access after random redefinition if modify_create_nucrand is used) -- Chris 20/02/2023
+          // printf("Old positions defined\n");
+        }
+        // Added vector modify_create_nucrand to store random nucleation flags for each reaction - Chris 20/02/2023
+        // If modify_create_nucrand selected then redefine xfrozen (actual position of template nucleator in the reaction) to a random position within the box
+        // Chris - 20/02/2023
+        if (modify_create_nucrand[rxnID] >= 0) {
+          for (int k = 0; k < 3; k++) {
+            if (dimension == 2 && k == 2) {
+              xfrozen[fit_incr][k] = 0.0;
+            }
+            else {
+              if (fit_incr == 0) {                          // 1st template particle, define random position :D Use individual reaction random number generator random[rxnID]
+                xfrozen[fit_incr][k] = (domain->boxhi[k] - domain->boxlo[k]) * (random[rxnID]->uniform()-0.5);
+              }
+              else {                                        // rest of the template particles, define their position from the relative position to the OG position of the first one but now from the new position of the first one -  Chris 20/02/2023
+                xfrozen[fit_incr][k] = xfrozen[0][k] + (oxfrozen[fit_incr][k] - oxfrozen[0][k]);
+              }
+            }
+          }
+          printf("            after random redefinition: [%.2f, %.2f, %.2f] -> [%.2f, %.2f, %.2f]\n", oxfrozen[fit_incr][0], oxfrozen[fit_incr][1], oxfrozen[fit_incr][2], xfrozen[fit_incr][0], xfrozen[fit_incr][1], xfrozen[fit_incr][2]);
         }
         // New boundary implementation, without using the closest_image() function from domain.cpp, which sometimes returns the wrong ID, likely due to the resetting of molecules IDs as new particles are created (part of the fix_bond_react.cpp)
+        // Chris - 20/02/2023
         if (fit_incr > 0) {
           double dx = xfrozen[fit_incr][0]-xfrozen[0][0];
           double dy = xfrozen[fit_incr][1]-xfrozen[0][1];
