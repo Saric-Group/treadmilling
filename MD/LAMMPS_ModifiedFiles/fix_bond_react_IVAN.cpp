@@ -2041,7 +2041,6 @@ void FixBondReact::get_IDcoords(int mode, int myID, double *center)
     int iatom = atom->map(glove[myID-1][1]);
     for (int i = 0; i < 3; i++)
       center[i] = x[iatom][i];
-    printf("Atom mode -- iatom = %d (ID = %d) - center[0] = %.2f - center[1] = %.2f - center[2] = %.2f\n", iatom, atom->tag[iatom], center[0], center[1], center[2]);
   } else {
     int iref = -1; // choose first atom as reference
     int iatom;
@@ -2062,7 +2061,6 @@ void FixBondReact::get_IDcoords(int mode, int myID, double *center)
     }
     for (int i = 0; i < 3; i++)
       center[i] /= nfragatoms;
-    printf("Non-atom mode -- iatom = %d (ID = %d) - center[0] = %.2f - center[1] = %.2f - center[2] = %.2f\n", iatom, atom->tag[iatom], center[0], center[1], center[2]);
   }
 }
 
@@ -2307,7 +2305,7 @@ double FixBondReact::rxnfunction(std::string rxnfunc, std::string varid,
       for (int i = 0; i < onemol->natoms; i++) {
         if (onemol->fragmentmask[ifrag][i]) {
           iatom = atom->map(glove[i][1]);
-          // printf("i=%d iatom=%d var=%g; ", i, iatom, vvec[iatom][ivar]);
+          printf("i=%d iatom=%d var=%g; ", i, iatom, vvec[iatom][ivar]);
           if (nsum == 0) {
             iatom1 = iatom;
             sumvvec += vvec[iatom][ivar];
@@ -2326,7 +2324,7 @@ double FixBondReact::rxnfunction(std::string rxnfunc, std::string varid,
       //if (iatom1>iatom2)
       //  sumvvec = -sumvvec
       }
-    // printf("nsum=%d sumvvec=%g.\n", nsum, sumvvec);
+    printf("nsum=%d sumvvec=%g.\n", nsum, sumvvec);
     }
   }
 
@@ -3526,7 +3524,6 @@ insert created atoms
 int FixBondReact::insert_atoms(tagint **my_mega_glove, int iupdate)
 {
   // inserting atoms based off fix_deposit->pre_exchange
-  printf("      Inserting atoms...\n");
   int flag;
   imageint *imageflags;
   double **coords,lamda[3],rotmat[3][3];
@@ -3598,47 +3595,13 @@ int FixBondReact::insert_atoms(tagint **my_mega_glove, int iupdate)
           printf("WARNING: eligible atoms skipped for created-atoms fit on %d\n",me);
           continue;
         }
-        printf("          fit_incr = %d\n", fit_incr);
         iatom = atom->map(my_mega_glove[ipre+1][iupdate]);
-        printf("            before closest image atom ID = %d - position = [%.2f, %.2f, %.2f]\n", atom->tag[iatom], atom->x[iatom][0], atom->x[iatom][1], atom->x[iatom][2]);
-        // if (iref == -1) iref = iatom;
-        // iatom = domain->closest_image(iref,iatom);
-        // printf("            after closest image atom ID = %d - position = [%.2f, %.2f, %.2f]\n", atom->tag[iatom], atom->x[iatom][0], atom->x[iatom][1], atom->x[iatom][2]);
+        if (iref == -1) iref = iatom;
+        iatom = domain->closest_image(iref,iatom);
         for (int k = 0; k < 3; k++) {
           xfrozen[fit_incr][k] = x[iatom][k];
           xmobile[fit_incr][k] = twomol->x[j][k];
         }
-        // New boundary implementation, without using the closest_image() function from domain.cpp, which sometimes returns the wrong ID, likely due to the resetting of molecules IDs as new particles are created (part of the fix_bond_react.cpp)
-        if (fit_incr > 0) {
-          double dx = xfrozen[fit_incr][0]-xfrozen[0][0];
-          double dy = xfrozen[fit_incr][1]-xfrozen[0][1];
-          double dz = xfrozen[fit_incr][2]-xfrozen[0][2];
-          if (dx < domain->boxlo[0]) {
-            xfrozen[fit_incr][0] += (domain->boxhi[0] - domain->boxlo[0]);
-            printf("              molecule crosses upper boundary in X!    (L = %.2f) -> rescaling subhead position by -L in X\n", (domain->boxhi[0] - domain->boxlo[0]));
-          }
-          else if (dx > domain->boxhi[0]) {
-            xfrozen[fit_incr][0] -= (domain->boxhi[0] - domain->boxlo[0]);
-            printf("              molecule crosses lower boundary in X!    (L = %.2f) -> rescaling subhead position by +L in X\n", (domain->boxhi[0] - domain->boxlo[0]));
-          }
-          if (dy < domain->boxlo[1]) {
-            xfrozen[fit_incr][1] += (domain->boxhi[1] - domain->boxlo[1]);
-            printf("              molecule crosses upper boundary in Y!    (L = %.2f) -> rescaling subhead position by -L in Y\n", (domain->boxhi[1] - domain->boxlo[1]));
-          }
-          else if (dy > domain->boxhi[1]) {
-            xfrozen[fit_incr][1] -= (domain->boxhi[1] - domain->boxlo[1]);
-            printf("              molecule crosses lower boundary in Y!    (L = %.2f) -> rescaling subhead position by +L in Y\n", (domain->boxhi[1] - domain->boxlo[1]));
-          }
-          if (dz < domain->boxlo[2]) {
-            xfrozen[fit_incr][2] += (domain->boxhi[2] - domain->boxlo[2]);
-            printf("              molecule crosses upper boundary in Z!    (L = %.2f) -> rescaling subhead position by -L in Z\n", (domain->boxhi[2] - domain->boxlo[2]));
-          }
-          else if (dz > domain->boxhi[2]) {
-            xfrozen[fit_incr][2] -= (domain->boxhi[2] - domain->boxlo[2]);
-            printf("              molecule crosses lower boundary in Z!    (L = %.2f) -> rescaling subhead position by +L in X\n", (domain->boxhi[2] - domain->boxlo[2]));
-          }
-        }
-        printf("          xfrozen = [%.2f, %.2f %.2f] - xmobile = [%.2f, %.2f %.2f]\n", xfrozen[fit_incr][0], xfrozen[fit_incr][1], xfrozen[fit_incr][2], xmobile[fit_incr][0], xmobile[fit_incr][1], xmobile[fit_incr][2]);
         fit_incr++;
       }
     }
@@ -3658,20 +3621,14 @@ int FixBondReact::insert_atoms(tagint **my_mega_glove, int iupdate)
       // apply optimal rotation/translation for created atom coords
       // also map coords back into simulation box
       if (fitroot == me) {
-        printf("          fitroot = %d - m = %d - ifit = %d - ifit ID = %d\n", fitroot, m, ifit, atom->tag[ifit]);
         MathExtra::matvec(rotmat,twomol->x[m],coords[m]);
-        printf("            Before superposer - x = [%.2f, %.2f %.2f] - coords = [%.2f, %.2f %.2f]\n", twomol->x[m][0], twomol->x[m][1], twomol->x[m][2], coords[m][0], coords[m][1], coords[m][2]);
         for (int i = 0; i < 3; i++) coords[m][i] += superposer.T[i];
-        printf("            After superposer - x = [%.2f, %.2f %.2f] - coords = [%.2f, %.2f %.2f]\n", twomol->x[m][0], twomol->x[m][1], twomol->x[m][2], coords[m][0], coords[m][1], coords[m][2]);
         imageflags[m] = atom->image[ifit];
-        printf("          image[ifit] = %d - imageflags[m] = %d\n", atom->image[ifit], imageflags[m]);
         domain->remap(coords[m],imageflags[m]);
-        printf("            After remap - x = [%.2f, %.2f %.2f] - coords = [%.2f, %.2f %.2f]\n", twomol->x[m][0], twomol->x[m][1], twomol->x[m][2], coords[m][0], coords[m][1], coords[m][2]);
       }
       MPI_Bcast(&imageflags[m],1,MPI_LMP_IMAGEINT,fitroot,world);
       MPI_Bcast(coords[m],3,MPI_DOUBLE,fitroot,world);
     }
-    printf("        Coordinates of %d - x = [%.2f, %.2f %.2f] - coords = [%.2f, %.2f %.2f]\n", m, twomol->x[m][0], twomol->x[m][1], twomol->x[m][2], coords[m][0], coords[m][1], coords[m][2]);
   }
 
   // check distance between any existing atom and inserted atom
