@@ -428,7 +428,7 @@ FixBondReact::FixBondReact(LAMMPS *lmp, int narg, char **arg) :
                                                              "'modify_create' keyword does not exist");
             }
             iarg += 2;
-          } else if (strcmp(arg[iarg],"nuc") == 0) {                                                // Adding a flag "nuc" to nucleate the new dimer in a random position within the box, independent of the position of the nucleator
+          } else if (strcmp(arg[iarg],"nuc") == 0) {                                                // Adding a flag "nuc" to nucleate the new dimer in a random position within the box, independent of the position of the nucleator - Chris 22/02/2023
             if (iarg+2 > narg) error->all(FLERR,"Illegal fix bond/react command: "
                                           "'modify_create' has too few arguments");
             if (strcmp(arg[iarg+1],"no") == 0) modify_create_nucrand[rxn] = -1; //default
@@ -3820,6 +3820,8 @@ int FixBondReact::insert_atoms(tagint **my_mega_glove, int iupdate)
 
         atom->mask[n] = 1 | groupbit;
         atom->image[n] = imageflags[m];
+
+        // Save polymerisation / nucleation time to atom variable
 
         // guess a somewhat reasonable initial velocity based on reaction site
         // further control is possible using bond_react_MASTER_group
