@@ -1,0 +1,144 @@
+log            /Users/christian/PhD/software/MINE_CLEAN/treadmilling_filaments/MD/Create_sim_files/MC_One_Filament/Tau_1000.0_mu_6.0_PBB_0.8_Lx_50.0_Ly_50.0/Results/MC_OneFilament_Log_Tau_1000.0_mu_6.0_PBB_0.8_Lx_50.0_Ly_50.0_Nsim_1.dat
+units          lj
+dimension      2
+atom_style     molecular
+read_data      /Users/christian/PhD/software/MINE_CLEAN/treadmilling_filaments/MD/Create_sim_files/MC_One_Filament/Tau_1000.0_mu_6.0_PBB_0.8_Lx_50.0_Ly_50.0/Config_MC/MC_OneFilament_Tau_1000.0_mu_6.0_PBB_0.8_Lx_50.0_Ly_50.0_Nsim_1_config.txt extra/bond/per/atom 5  extra/special/per/atom 20  extra/angle/per/atom 3
+
+fix            Twodim all enforce2d
+
+
+variable       vMaskGMonomers atom "type==4"
+group          GMonomers dynamic all  var vMaskGMonomers  every 1
+
+
+variable       vMaskTails atom "type==3"
+group          Tails dynamic all  var vMaskTails  every 1
+
+
+variable       vMaskHeads atom "type==1"
+group          Heads dynamic all  var vMaskHeads  every 1
+
+
+variable       vMaskFilamentBulk atom "type==2"
+group          FilamentBulk dynamic all  var vMaskFilamentBulk  every 1
+
+
+variable       vMaskPolymerisation0Group atom "type==4"
+group          Polymerisation0Group dynamic all  var vMaskPolymerisation0Group  every 4 
+
+
+variable       vMaskPolymerisation1Group atom "type==4 || type==1"
+group          Polymerisation1Group dynamic all  var vMaskPolymerisation1Group  every 4 
+
+
+variable       vMaskDumpGroup atom "type==3 || type==1 || type==2"
+group          DumpGroup dynamic all  var vMaskDumpGroup  every 10 
+
+
+variable       vMaskDepolymerisation0Group atom "type==2 || type==3"
+group          Depolymerisation0Group dynamic all  var vMaskDepolymerisation0Group  every 4 
+
+
+variable       vMaskDepolymerisation3Group atom "type==1 || type==3" 
+group          Depolymerisation3Group dynamic all  var vMaskDepolymerisation3Group  every 4
+
+
+neighbor       3.0 bin
+neigh_modify   every 4 delay 0
+comm_modify    cutoff 10
+
+
+special_bonds  lj 1.0 1.0 1.0
+bond_style     harmonic
+bond_coeff     1 500.0 1.0
+
+
+angle_style    harmonic
+angle_coeff    * 500.0 180.0
+
+
+pair_style     hybrid/overlay  cosine/squared 1.00  zero 1.50
+pair_coeff     * * cosine/squared 10.0 1.00 1.00 wca
+pair_coeff     2 3 zero 1.50
+pair_coeff     1 3 zero 1.50
+
+
+fix            fGCMCext GMonomers gcmc 5 75 0  4  110  1.0 6.0 1.0  group Polymerisation0Group group Polymerisation1Group
+run            10000
+
+
+molecule       mPrePolymerisation1 /Users/christian/PhD/software/MINE_CLEAN/treadmilling_filaments/MD/Create_sim_files/MC_One_Filament/Tau_1000.0_mu_6.0_PBB_0.8_Lx_50.0_Ly_50.0/Reactions/Pre_Polymerisation1.txt
+molecule       mPostPolymerisation1 /Users/christian/PhD/software/MINE_CLEAN/treadmilling_filaments/MD/Create_sim_files/MC_One_Filament/Tau_1000.0_mu_6.0_PBB_0.8_Lx_50.0_Ly_50.0/Reactions/Post_Polymerisation1.txt
+molecule       mPrePolymerisation2 /Users/christian/PhD/software/MINE_CLEAN/treadmilling_filaments/MD/Create_sim_files/MC_One_Filament/Tau_1000.0_mu_6.0_PBB_0.8_Lx_50.0_Ly_50.0/Reactions/Pre_Polymerisation2.txt
+molecule       mPostPolymerisation2 /Users/christian/PhD/software/MINE_CLEAN/treadmilling_filaments/MD/Create_sim_files/MC_One_Filament/Tau_1000.0_mu_6.0_PBB_0.8_Lx_50.0_Ly_50.0/Reactions/Post_Polymerisation2.txt
+molecule       mPrePolymerisation3 /Users/christian/PhD/software/MINE_CLEAN/treadmilling_filaments/MD/Create_sim_files/MC_One_Filament/Tau_1000.0_mu_6.0_PBB_0.8_Lx_50.0_Ly_50.0/Reactions/Pre_Polymerisation3.txt
+molecule       mPostPolymerisation3 /Users/christian/PhD/software/MINE_CLEAN/treadmilling_filaments/MD/Create_sim_files/MC_One_Filament/Tau_1000.0_mu_6.0_PBB_0.8_Lx_50.0_Ly_50.0/Reactions/Post_Polymerisation3.txt
+molecule       mPreDepolymerisation0 /Users/christian/PhD/software/MINE_CLEAN/treadmilling_filaments/MD/Create_sim_files/MC_One_Filament/Tau_1000.0_mu_6.0_PBB_0.8_Lx_50.0_Ly_50.0/Reactions/Pre_Depolymerisation0.txt
+molecule       mPostDepolymerisation0 /Users/christian/PhD/software/MINE_CLEAN/treadmilling_filaments/MD/Create_sim_files/MC_One_Filament/Tau_1000.0_mu_6.0_PBB_0.8_Lx_50.0_Ly_50.0/Reactions/Post_Depolymerisation0.txt
+molecule       mPreDepolymerisation1 /Users/christian/PhD/software/MINE_CLEAN/treadmilling_filaments/MD/Create_sim_files/MC_One_Filament/Tau_1000.0_mu_6.0_PBB_0.8_Lx_50.0_Ly_50.0/Reactions/Pre_Depolymerisation1.txt
+molecule       mPostDepolymerisation1 /Users/christian/PhD/software/MINE_CLEAN/treadmilling_filaments/MD/Create_sim_files/MC_One_Filament/Tau_1000.0_mu_6.0_PBB_0.8_Lx_50.0_Ly_50.0/Reactions/Post_Depolymerisation1.txt
+molecule       mPreDepolymerisation2 /Users/christian/PhD/software/MINE_CLEAN/treadmilling_filaments/MD/Create_sim_files/MC_One_Filament/Tau_1000.0_mu_6.0_PBB_0.8_Lx_50.0_Ly_50.0/Reactions/Pre_Depolymerisation2.txt
+molecule       mPostDepolymerisation2 /Users/christian/PhD/software/MINE_CLEAN/treadmilling_filaments/MD/Create_sim_files/MC_One_Filament/Tau_1000.0_mu_6.0_PBB_0.8_Lx_50.0_Ly_50.0/Reactions/Post_Depolymerisation2.txt
+molecule       mPreDepolymerisation3 /Users/christian/PhD/software/MINE_CLEAN/treadmilling_filaments/MD/Create_sim_files/MC_One_Filament/Tau_1000.0_mu_6.0_PBB_0.8_Lx_50.0_Ly_50.0/Reactions/Pre_Depolymerisation3.txt
+molecule       mPostDepolymerisation3 /Users/christian/PhD/software/MINE_CLEAN/treadmilling_filaments/MD/Create_sim_files/MC_One_Filament/Tau_1000.0_mu_6.0_PBB_0.8_Lx_50.0_Ly_50.0/Reactions/Post_Depolymerisation3.txt
+
+
+fix                 freact all bond/react  stabilization yes AllAtoms 0.1  reset_mol_ids no         &
+react Polymerisation1 Polymerisation1Group 10 0.900000 1.100000 mPrePolymerisation1 mPostPolymerisation1 /Users/christian/PhD/software/MINE_CLEAN/treadmilling_filaments/MD/Create_sim_files/MC_One_Filament/Tau_1000.0_mu_6.0_PBB_0.8_Lx_50.0_Ly_50.0/Reactions/Map_Polymerisation1.txt  prob 0.8 110 stabilize_steps 9         &
+react Polymerisation2 Polymerisation1Group 10 0.900000 1.100000 mPrePolymerisation2 mPostPolymerisation2 /Users/christian/PhD/software/MINE_CLEAN/treadmilling_filaments/MD/Create_sim_files/MC_One_Filament/Tau_1000.0_mu_6.0_PBB_0.8_Lx_50.0_Ly_50.0/Reactions/Map_Polymerisation2.txt  prob 0.8 110 stabilize_steps 9 &
+react Polymerisation3 Polymerisation1Group 10 0.900000 1.100000 mPrePolymerisation3 mPostPolymerisation3 /Users/christian/PhD/software/MINE_CLEAN/treadmilling_filaments/MD/Create_sim_files/MC_One_Filament/Tau_1000.0_mu_6.0_PBB_0.8_Lx_50.0_Ly_50.0/Reactions/Map_Polymerisation3.txt  prob 0.8 110 stabilize_steps 9     &
+react Depolymerisation0 Depolymerisation0Group 10 0.90000 1.100000 mPreDepolymerisation0 mPostDepolymerisation0 /Users/christian/PhD/software/MINE_CLEAN/treadmilling_filaments/MD/Create_sim_files/MC_One_Filament/Tau_1000.0_mu_6.0_PBB_0.8_Lx_50.0_Ly_50.0/Reactions/Map_Depolymerisation0.txt  prob 1.0 110 stabilize_steps 9    &
+react Depolymerisation1 Depolymerisation0Group 10 0.90000 1.100000 mPreDepolymerisation1 mPostDepolymerisation1 /Users/christian/PhD/software/MINE_CLEAN/treadmilling_filaments/MD/Create_sim_files/MC_One_Filament/Tau_1000.0_mu_6.0_PBB_0.8_Lx_50.0_Ly_50.0/Reactions/Map_Depolymerisation1.txt  prob 1.0 110 stabilize_steps 9     &
+react Depolymerisation2 Depolymerisation0Group 10 0.90000 1.100000 mPreDepolymerisation2 mPostDepolymerisation2 /Users/christian/PhD/software/MINE_CLEAN/treadmilling_filaments/MD/Create_sim_files/MC_One_Filament/Tau_1000.0_mu_6.0_PBB_0.8_Lx_50.0_Ly_50.0/Reactions/Map_Depolymerisation2.txt  prob 1.0 110 stabilize_steps 9  
+
+
+fix        fLang all langevin 1.0 1.0 1.0 110
+fix        fNVE AllAtoms_REACT nve
+
+
+variable   vMCMASK equal (step<10000)*-1000.0
+variable   vNewTailsTime atom "v_vMCMASK+f_fTailsTime + gmask(bond_react_MASTER_group) * gmask(GMonomers)*(-f_fTailsTime+step ) "
+fix        fTailsTime all store/state 10 v_vNewTailsTime
+variable   vTailsTime atom (step-f_fTailsTime)/1000.0
+variable   vTailsP atom 1.0-exp(-v_vTailsTime)
+
+
+dump       2 all custom 25 /Users/christian/PhD/software/MINE_CLEAN/treadmilling_filaments/MD/Create_sim_files/MC_One_Filament/Tau_1000.0_mu_6.0_PBB_0.8_Lx_50.0_Ly_50.0/Dump_Pol/MC_OneFilament_Full_Tau_1000.0_mu_6.0_PBB_0.8_Lx_50.0_Ly_50.0_Nsim_1.xyz id mol type x y z v_vTailsTime v_vNewTailsTime v_vTailsTime
+dump       1 DumpGroup custom 25 /Users/christian/PhD/software/MINE_CLEAN/treadmilling_filaments/MD/Create_sim_files/MC_One_Filament/Tau_1000.0_mu_6.0_PBB_0.8_Lx_50.0_Ly_50.0/Dump_Pol/MC_OneFilament_Tau_1000.0_mu_6.0_PBB_0.8_Lx_50.0_Ly_50.0_Nsim_1.xyz id mol type x y z v_vTailsTime v_vNewTailsTime v_vTailsTime
+
+
+variable           vNumall equal count(all)
+compute            ctempall all temp
+compute_modify     ctempall dynamic/dof yes
+compute            ctempGMonomers GMonomers temp
+compute_modify     ctempGMonomers dynamic/dof yes
+variable           vNumGMonomers equal count(GMonomers)
+compute            ctempTails Tails temp
+compute_modify     ctempTails dynamic/dof yes
+variable           vNumTails equal count(Tails)
+compute            ctempHeads Heads temp
+compute_modify     ctempHeads dynamic/dof yes
+variable           vNumHeads equal count(Heads)
+compute            ctempFilamentBulk FilamentBulk temp
+compute_modify     ctempFilamentBulk dynamic/dof yes
+variable           vNumFilamentBulk equal count(FilamentBulk)
+thermo             10
+compute_modify     thermo_temp dynamic/dof yes
+
+
+variable           TPol equal         "f_fTPol+(v_vNumFilamentBulk>0)"
+fix                fTPol all ave/time 1 1 1 v_TPol
+
+
+fix                fStatsThermo all ave/time 1000 1 1000  v_vNumall c_ctempall  v_vNumGMonomers c_ctempGMonomers  v_vNumTails c_ctempTails  v_vNumHeads c_ctempHeads  v_vNumFilamentBulk c_ctempFilamentBulk file /Users/christian/PhD/software/MINE_CLEAN/treadmilling_filaments/MD/Create_sim_files/MC_One_Filament/Tau_1000.0_mu_6.0_PBB_0.8_Lx_50.0_Ly_50.0/Results/MC_StatsThermo_OneFilament_Tau_1000.0_mu_6.0_PBB_0.8_Lx_50.0_Ly_50.0_Nsim_1.dat
+
+fix                 fStatsRxn all ave/time 1000 1 1000  f_fGCMCext[3] f_fGCMCext[4] f_fGCMCext[5] f_fGCMCext[6]  f_freact[*] f_fTPol  file /Users/christian/PhD/software/MINE_CLEAN/treadmilling_filaments/MD/Create_sim_files/MC_One_Filament/Tau_1000.0_mu_6.0_PBB_0.8_Lx_50.0_Ly_50.0/Results/StatsRxn_OneFilament_Tau_1000.0_mu_6.0_PBB_0.8_Lx_50.0_Ly_50.0_Nsim_1.dat
+compute            cBonds DumpGroup property/local batom1 batom2 btype
+compute            cBondsDet DumpGroup bond/local dist engpot
+dump               dBonds DumpGroup local 25 /Users/christian/PhD/software/MINE_CLEAN/treadmilling_filaments/MD/Create_sim_files/MC_One_Filament/Tau_1000.0_mu_6.0_PBB_0.8_Lx_50.0_Ly_50.0/Dump_Pol/MC_Filament_Bonds_Tau_1000.0_mu_6.0_PBB_0.8_Lx_50.0_Ly_50.0_Nsim_1.dat index c_cBonds[1] c_cBonds[2] c_cBonds[3] c_cBondsDet[1] c_cBondsDet[2]
+# compute             cAngles all property/local aatom1 aatom2 aatom3 atype
+# dump                dAngles all local 100 Results/Angles_OneFilament_Tau_1000.0_mu_6.0_PBB_0.8_Lx_50.0_Ly_50.0_Nsim_1.dat.dat index c_cAngles[1] c_cAngles[2] c_cAngles[3] c_cAngles[4]
+
+
+timestep               0.002
+run                    10000

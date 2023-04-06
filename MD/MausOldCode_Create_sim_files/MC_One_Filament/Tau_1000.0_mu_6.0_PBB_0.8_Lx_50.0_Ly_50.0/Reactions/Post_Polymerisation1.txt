@@ -1,0 +1,24 @@
+#Post Pol1 
+
+3 atoms
+2 bonds
+1 angles
+
+
+Types
+
+1 1
+2 2
+3 3
+
+
+Bonds
+
+1 1 2 3
+2 1 1 2
+
+
+Angles
+
+1 1 1 2 3
+

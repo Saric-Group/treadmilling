@@ -1,0 +1,28 @@
+#Poymerisation3 4-mer+1
+
+4 equivalences
+1 edgeIDs
+1 constraints
+
+InitiatorIDs
+
+1
+2
+
+
+EdgeIDs
+
+4
+
+
+Equivalences
+
+1 1
+2 2
+3 3
+4 4
+
+
+Constraints
+
+angle 1 2 3 150 210
