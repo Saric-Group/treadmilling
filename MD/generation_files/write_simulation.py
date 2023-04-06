@@ -44,6 +44,7 @@ f.write("tstep [s]:\t\t%.1f\n"%(tstep))
 f.write("runtime [s]:\t\t%.1f\n"%(runtime))
 f.write("frate [s]:\t\t%.1f\n"%(frate))
 f.write("seed:\t\t%d\n"%(seed))
+f.write("box size:\t\t%.1f\n"%(L))
 f.close()
 
 f = open('%s/configuration.txt'%(gpath), 'w')
