@@ -1,0 +1,39 @@
+# Post molecule template for nucleation reaction
+
+4 atoms
+2 bonds
+1 fragments
+
+
+Types
+
+1 4
+2 4
+3 2
+4 3
+
+Coords
+
+1 0.0000 0.0000 0.0
+2 1.0000 0.0000 0.0
+3 1.9397 -0.3420 0.0
+4 2.8794 -0.6840 0.0
+
+
+Molecules
+
+1 0
+2 0
+3 1
+4 1
+
+
+Bonds
+
+1 1 1 2
+2 1 3 4
+
+
+Fragments
+
+1 2

@@ -1,0 +1,10 @@
+path:		/Users/christian/PhD/software/MINE_CLEAN/treadmilling_filaments/MD/examples/single_filament
+ron [mons/s]:		8.0
+thyd [s]:		5.0
+rnuc [fils/s]:		0.0
+Kbond [kT/sigma2]:		1000.0
+Kbend [kT/sigma2]:		800.0
+tstep [s]:		0.0
+runtime [s]:		600.0
+frate [s]:		0.1
+seed:		1234
