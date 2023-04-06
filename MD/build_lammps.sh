@@ -30,6 +30,7 @@ echo "Copying modified LAMMPS function files and compiling..."
 
 if [ ! -f $LAMMPSDIR/src/lmp_serial ]; then
         cp -rf $MODFILESDIR/fix_bond_react.cpp $LAMMPSDIR/src/REACTION
+        cp -rf $MODFILESDIR/fix_bond_react.h $LAMMPSDIR/src/REACTION
         cp -rf $MODFILESDIR/fix_gcmc.cpp $LAMMPSDIR/src/MC
         cp -rf $MODFILESDIR/fix_gcmc.h $LAMMPSDIR/src/MC
 	cd $LAMMPSDIR/src
