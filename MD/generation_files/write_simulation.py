@@ -15,6 +15,7 @@ parser.add_argument('-runtime', '--runtime', help='simulation run time [seconds]
 parser.add_argument('-frate', '--frate', help='frame rate [seconds]', required=False, type=float, default=1.0)
 parser.add_argument('-sd','--seed', help='random number generator seed', required=False, type=int, default=1234)
 parser.add_argument('-L','--L', help='box size [sigma]', required=False, type=float, default=200)
+parser.add_argument('-ICNfils','--ICNfils', help='number of filaments in Initial Conditions [0 or 1]', required=False, type=int, default=0)
 
 args = parser.parse_args()
 gpath = args.path
@@ -28,6 +29,7 @@ runtime = float(args.runtime)
 frate = float(args.frate)
 seed = int(args.seed)
 L = float(args.L)
+ICNfils = int(args.ICNfils)
 
 r = os.system('mkdir %s'%(gpath))
 r = os.system('mkdir %s/Reactions'%(gpath))
@@ -47,8 +49,9 @@ f.write("seed:\t\t\t%d\n"%(seed))
 f.write("box size:\t\t%.1f\n"%(L))
 f.close()
 
-f = open('%s/configuration.txt'%(gpath), 'w')
-f.write('''First line of this test
+if ICNfils == 1:
+    f = open('%s/configuration.txt'%(gpath), 'w')
+    f.write('''First line of this test
 4 atoms
 2 bonds
 0 angles
@@ -56,9 +59,9 @@ f.write('''First line of this test
 1 bond types
 1 angle types
 ''')
-f.write('%.1f %.1f xlo xhi\n'%(-L/2,L/2))
-f.write('%.1f %.1f ylo yhi\n'%(-L/2,L/2))
-f.write('''-4.25 0.25 zlo zhi
+    f.write('%.1f %.1f xlo xhi\n'%(-L/2,L/2))
+    f.write('%.1f %.1f ylo yhi\n'%(-L/2,L/2))
+    f.write('''-4.25 0.25 zlo zhi
 
 Masses
 
@@ -81,7 +84,40 @@ Bonds
 1 1 1 2
 2 1 3 4
 ''')
-f.close()
+    f.close()
+elif ICNfils == 0:
+    f = open('%s/configuration.txt'%(gpath), 'w')
+    f.write('''First line of this test
+2 atoms
+1 bonds
+0 angles
+4 atom types
+1 bond types
+1 angle types
+''')
+    f.write('%.1f %.1f xlo xhi\n'%(-L/2,L/2))
+    f.write('%.1f %.1f ylo yhi\n'%(-L/2,L/2))
+    f.write('''-4.25 0.25 zlo zhi
+
+Masses
+
+1 1
+2 1
+3 1
+4 1
+
+
+Atoms
+
+1 0 4 0.0 -0.5 -2.0
+2 0 4 0.0 0.5 -2.0
+
+
+Bonds
+
+1 1 1 2
+''')
+    f.close()
 
 f = open('%s/in.local'%(gpath), 'w')
 f.write('''log                 log.txt
