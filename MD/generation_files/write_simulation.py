@@ -235,8 +235,8 @@ fix                 fNVE AllAtoms_REACT nve
 
 variable            realtime equal step*${tstep}
 
-dump                1 all custom ${dump_time} output.xyz id mol type x y z v_vTailsTime v_vTailsP
-dump_modify         1 format line "%d %d %d %.2f %.2f %.2f %.1f %.2f"
+dump                1 all custom ${dump_time} output.xyz id mol type x y z fx fy fz f_fSI v_vTailsTime
+dump_modify         1 format line "%d %d %d %.2f %.2f %.2f %.2f %.2f %.2f %.1f %.1f"
 
 thermo              ${dump_time}
 compute_modify      thermo_temp dynamic/dof yes
