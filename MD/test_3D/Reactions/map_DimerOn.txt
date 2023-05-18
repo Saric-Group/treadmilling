@@ -1,0 +1,24 @@
+# Map for growth reaction on dimer (filament nucleus)
+
+2 equivalences
+1 createIDs
+1 constraints
+
+InitiatorIDs
+
+1
+2
+
+Equivalences
+
+1 1
+2 2
+
+CreateIDs
+
+3
+
+
+Constraints
+
+custom "rxndiffIvan(v_kon,2) > random(0,1,1234)"

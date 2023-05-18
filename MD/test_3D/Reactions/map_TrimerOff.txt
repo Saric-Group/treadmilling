@@ -1,0 +1,28 @@
+# Map for shrink reaction on trimer
+
+3 equivalences
+1 deleteIDs
+1 constraints
+
+
+InitiatorIDs
+
+1
+2
+
+
+Equivalences
+
+1 1
+2 2
+3 3
+
+
+DeleteIDs
+
+1
+
+
+Constraints
+
+custom "(1.0-exp(-rxndiffIvan(v_vTailsTime,1))) > random(0,1,1234)"
