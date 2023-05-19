@@ -98,6 +98,7 @@ bool olapINF;										// set overlap energy to infinity [kT]
 bool thermal_noise;									// set xyMC to be thermal noise (gaussian distribution)
 bool PC19;											// deactivate hydrolysis (roff = 0) 
 int PC19time;										// time of hydrolysis deactivation
+double PC19frac;									// fraction of poff if PC19 is activated
 
 /* ------- --------------------- ------- */
 
@@ -108,6 +109,7 @@ FILAMENT *filaments;								// monomers array (array of M monomer objects)
 
 double Etotal;
 int PROGDUMP;
+int PROGRDUMP;
 int step;											// steps counter
 int Nparts;											// particle counter
 int maxid;											// current maximum id
@@ -594,9 +596,9 @@ void dump_movie_frame(int step) {
 	fprintf(dumpf, "-%.2f %.2f\n",L/2.0,L/2.0);
 	fprintf(dumpf, "-%.2f %.2f\n",L/2.0,L/2.0);
 	fprintf(dumpf, "-0.25 0.25\n");
-	fprintf(dumpf, "ITEM: ATOMS id type mol x y z a\n");
+	fprintf(dumpf, "ITEM: ATOMS id type mol x y z a lt\n");
 	for (ip = 0; ip < N; ip++) {
-		if (particles[ip].exists) {fprintf(dumpf, "%d %d %d %.2f %.2f %.2f %.2f\n",particles[ip].id,1,filaments[particles[ip].fil].id,particles[ip].x,particles[ip].y,0.0,particles[ip].angle);}
+		if (particles[ip].exists) {fprintf(dumpf, "%d %d %d %.2f %.2f %.2f %.2f %.2f\n",particles[ip].id,1,filaments[particles[ip].fil].id,particles[ip].x,particles[ip].y,0.0,particles[ip].angle,(double)(step/DYNSTEP-particles[ip].tnuc));}
 	}
 	fclose(dumpf);
 	rejectf=fopen(reject_file, "a");
@@ -1195,7 +1197,8 @@ void polMC(int fidx) {
 	while (findpos) {
 		ntriallocal++;
 		// ang = angbase + (drand48()-0.5)*M_PI/4.0;
-		ang = angbase + (drand48()-0.5)*M_PI/180*polang;
+		// ang = angbase + (drand48()-0.5)*M_PI/180*polang;
+		ang = angbase + normal(0.0, sqrt(1/Kbend));
 		// ang = angbase;
 		npos.x = hpos.x + cos(ang);
 		npos.y = hpos.y + sin(ang);
@@ -1288,12 +1291,13 @@ void depolMC(int fidx) {
 	double rand;
 	int tidx, hidx, ntidx;
 	double koffl = koff;
-	if (PC19 && step-RELSTEPS > PC19time) {return;}
+	// if (PC19 && step-RELSTEPS > PC19time) {return;}
 	if (filaments[fidx].n <= 2) {
 		rand = drand48();
 		if (sizer) {koffl = koff*(double)filaments[fidx].n;}
 		if (timer) {koffl = koff*(double)(step/DYNSTEP-particles[tidx].tnuc);}
 		if (etimer) {koffl = koff*(1.0-exp(-(double)(step/DYNSTEP-particles[tidx].tnuc)/(double)mean_time));}
+		if (PC19 && step-RELSTEPS > PC19time) {koffl = koffl*PC19frac;}
 		if (rand < koffl) {
 			tidx = filaments[fidx].tail;
 			hidx = filaments[fidx].head;
@@ -1311,6 +1315,7 @@ void depolMC(int fidx) {
 	// if (timer) {koffl = koff*(double)(step/DYNSTEP-filaments[fidx].tnuc);}
 	if (timer) {koffl = koff*(double)(step/DYNSTEP-particles[tidx].tnuc);}
 	if (etimer) {koffl = koff*(1.0-exp(-(double)(step/DYNSTEP-particles[tidx].tnuc)/(double)mean_time));}
+	if (PC19 && step-RELSTEPS > PC19time) {koffl = koffl*PC19frac;}
 	if (rand < koffl) {
 		ntidx = particles[tidx].bplus;
 		filaments[fidx].tail = ntidx;
@@ -1534,6 +1539,7 @@ int main(int argc, char *argv[]){
 	thermal_noise = false;
 	PC19 = false;
 	PC19time = 1500000;
+	PC19frac = 0.0;
 	polang = 45;
 	// Default control values
 	verbose=false;
@@ -1590,6 +1596,7 @@ int main(int argc, char *argv[]){
 		if (!strcmp(argv[argcount],"-nothing")) {eps = 0.0; Kdir = 0.0; Min = false;}
 		if (!strcmp(argv[argcount],"-bands")) {bands = true; nbands=atoi(argv[++argcount]);}
 		if (!strcmp(argv[argcount],"-PC19")) {PC19 = true; PC19time=atoi(argv[++argcount]);}
+		if (!strcmp(argv[argcount],"-PC19frac")) {PC19frac=atof(argv[++argcount]);}
 		//
 		if (!strcmp(argv[argcount],"-v")) verbose=true;
 		if (!strcmp(argv[argcount],"-vv")) long_verbose=true;
@@ -1612,6 +1619,7 @@ int main(int argc, char *argv[]){
 	}
 	if (relax) {MCSTEPS = 500;}
 	PROGDUMP = (int)(MCSTEPS/(double)10);
+	PROGRDUMP = (int)(RELSTEPS/(double)10);
 	if (sizer) {koff = kon/(double)mean_size;}
 	// if (timer) {koff = kon/(double)mean_time;}
 	if (timer) {koff = 1.0/(double)mean_time;}
@@ -1791,6 +1799,8 @@ int main(int argc, char *argv[]){
 			NpolTrialsBand = 0;
 			NpolRejectedEVBand = 0;
 		}
+		// Progress
+		if (progress && ((step)%PROGRDUMP == 0)) {printf("%d %% of relaxation done\n", (step)/PROGRDUMP*10);}
 	}
 	eps = reps;
 	Min = rMin;
