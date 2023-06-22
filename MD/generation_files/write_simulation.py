@@ -16,6 +16,7 @@ parser.add_argument('-frate', '--frate', help='frame rate [seconds]', required=F
 parser.add_argument('-sd','--seed', help='random number generator seed', required=False, type=int, default=1234)
 parser.add_argument('-L','--L', help='box size [sigma]', required=False, type=float, default=200)
 parser.add_argument('-ICNfils','--ICNfils', help='number of filaments in Initial Conditions [0 or 1]', required=False, type=int, default=0)
+parser.add_argument('-arrest','--arrest', help='arrest treadmilling dynamics: turn shrinking off', required=False, action = 'store_true')
 
 args = parser.parse_args()
 gpath = args.path
@@ -30,6 +31,11 @@ frate = float(args.frate)
 seed = int(args.seed)
 L = float(args.L)
 ICNfils = int(args.ICNfils)
+arrest = args.arrest
+
+poff = 1.0
+if arrest:
+    poff = 0.0
 
 r = os.system('mkdir %s'%(gpath))
 r = os.system('mkdir %s/Reactions'%(gpath))
@@ -47,6 +53,7 @@ f.write("runtime [s]:\t\t%.1f\n"%(runtime))
 f.write("frate [s]:\t\t%.1f\n"%(frate))
 f.write("seed:\t\t\t%d\n"%(seed))
 f.write("box size:\t\t%.1f\n"%(L))
+f.write("poff:\t\t%.1f\n"%(poff))
 f.close()
 
 if ICNfils == 1:
@@ -129,6 +136,7 @@ read_data           configuration.txt extra/bond/per/atom 5  extra/special/per/a
 f.write("variable            ron equal %.1f                                 # growth rate [monomers/s]\n"%(ron))
 f.write("variable            tauhyd equal %.1f                              # hydrolysis time [seconds]\n"%(thyd))
 f.write("variable            rnuc equal %.1f                                # nucleation rate [filaments/s]\n"%(rnuc))
+f.write("variable            poff equal %.1f                                # shrinking reaction initiation probability (0 or 1)\n"%(poff))
 f.write("variable            Kbond equal %.1f                               # bond constant [kT/sigma2]\n"%(Kbond))
 f.write("variable            Kbend equal %.1f                               # bend constant [kT/sigma2]\n"%(Kbend))
 f.write("variable            tstep equal %f                                 # simulation timestep size [seconds]\n"%(tstep))
@@ -198,10 +206,10 @@ fix                 freact all bond/react  stabilization yes AllAtoms 0.1  reset
                 react DimerOn all ${rstep} 0.900000 1.100000 mPreDimerOn mPostDimerOn Reactions/map_DimerOn.txt prob 1.0 ${seed} stabilize_steps ${stab_steps} modify_create fit 1 modify_create overlap 0.9         &
                 react TrimerOn all ${rstep} 0.900000 1.100000 mPreTrimerOn mPostTrimerOn Reactions/map_TrimerOn.txt prob 1.0 ${seed} stabilize_steps ${stab_steps} modify_create fit 1 modify_create overlap 0.9         &
                 react OligomerOn all ${rstep} 0.900000 1.100000 mPreOligomerOn mPostOligomerOn Reactions/map_OligomerOn.txt prob 1.0 ${seed} stabilize_steps ${stab_steps} modify_create fit 1 modify_create overlap 0.9         &
-                react OligomerOff all ${rstep} 0.900000 1.100000 mPreOligomerOff mPostOligomerOff Reactions/map_OligomerOff.txt prob 1.0 ${seed} stabilize_steps ${stab_steps}         &
-                react QuartomerOff all ${rstep} 0.900000 1.100000 mPreQuartomerOff mPostQuartomerOff Reactions/map_QuartomerOff.txt prob 1.0 ${seed} stabilize_steps ${stab_steps}         &
-                react TrimerOff all ${rstep} 0.900000 1.100000 mPreTrimerOff mPostTrimerOff Reactions/map_TrimerOff.txt prob 1.0 ${seed} stabilize_steps ${stab_steps}         &
-                react DimerOff all ${rstep} 0.900000 1.100000 mPreDimerOff mPostDimerOff Reactions/map_DimerOff.txt prob 1.0 ${seed} stabilize_steps ${stab_steps}
+                react OligomerOff all ${rstep} 0.900000 1.100000 mPreOligomerOff mPostOligomerOff Reactions/map_OligomerOff.txt prob ${poff} ${seed} stabilize_steps ${stab_steps}         &
+                react QuartomerOff all ${rstep} 0.900000 1.100000 mPreQuartomerOff mPostQuartomerOff Reactions/map_QuartomerOff.txt prob ${poff} ${seed} stabilize_steps ${stab_steps}         &
+                react TrimerOff all ${rstep} 0.900000 1.100000 mPreTrimerOff mPostTrimerOff Reactions/map_TrimerOff.txt prob ${poff} ${seed} stabilize_steps ${stab_steps}         &
+                react DimerOff all ${rstep} 0.900000 1.100000 mPreDimerOff mPostDimerOff Reactions/map_DimerOff.txt prob ${poff} ${seed} stabilize_steps ${stab_steps}
 
 variable            vMaskHeadType atom "type==3"
 group               HeadMons dynamic all var vMaskHeadType every 1
