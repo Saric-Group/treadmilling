@@ -238,8 +238,7 @@ variable            vTailsTime atom v_vSA/v_thyd
 variable            vTailsE atom exp(-v_vTailsTime)
 variable            vTailsP atom 1.0-exp(-v_vTailsTime)
 
-fix                 fLang all langevin 1.0 1.0 1.0 ${seed}
-fix                 fNVE AllAtoms_REACT nve
+fix                 fNVT AllAtoms_REACT nvt temp 1.0 1.0 $(100.0*${tstep})
 
 variable            realtime equal step*${tstep}
 
