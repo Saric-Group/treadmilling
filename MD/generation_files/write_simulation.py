@@ -35,6 +35,9 @@ L = float(args.L)
 ICNfils = int(args.ICNfils)
 arrest = args.arrest
 
+# Initialise numpy's RNG
+np.random.seed(seed)
+
 poff = 1.0
 if arrest:
     poff = 0.0
@@ -59,6 +62,11 @@ f.write("poff:\t\t%.1f\n"%(poff))
 f.close()
 
 if ICNfils == 1:
+    alpha = 2*np.pi*np.random.random()
+    TX = 0.5*np.cos(alpha+np.pi)
+    TY = 0.5*np.sin(alpha+np.pi)
+    HX = 0.5*np.cos(alpha)
+    HY = 0.5*np.sin(alpha)
     f = open('%s/configuration.txt'%(gpath), 'w')
     f.write('''First line of this test
 4 atoms
@@ -82,8 +90,8 @@ Masses
 
 Atoms
 
-1 1 2 -0.5 0.0 0.0
-2 1 3 0.5 0.0 0.0
+1 1 2 %f %f 0.0
+2 1 3 %f %f 0.0
 3 0 4 0.0 -0.5 -2.0
 4 0 4 0.0 0.5 -2.0
 
@@ -92,7 +100,7 @@ Bonds
 
 1 1 1 2
 2 1 3 4
-''')
+'''%(TX, TY, HX, HY))
     f.close()
 elif ICNfils == 0:
     f = open('%s/configuration.txt'%(gpath), 'w')
