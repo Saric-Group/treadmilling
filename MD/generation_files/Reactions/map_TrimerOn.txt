@@ -25,4 +25,4 @@ CreateIDs
 
 Constraints
 
-custom "rxndiffIvan(v_kon,2) > random(0,1,1234)"
+custom "rxndiffIvan(v_kon,2) > random(0,1,v_seed)"
