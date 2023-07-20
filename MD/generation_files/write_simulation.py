@@ -11,6 +11,7 @@ parser.add_argument('-rnuc', '--rnuc', help='imposed nucleation rate [filaments/
 parser.add_argument('-Kbond', '--Kbond', help='bond constant [kT/sigma2]', required=False, type=float, default=1000.0)
 parser.add_argument('-Kbend', '--Kbend', help='bending constant [kT/sigma2]', required=False, type=float, default=800.0)
 parser.add_argument('-tstep', '--tstep', help='simulation timestep [seconds]', required=False, type=float, default=0.001)
+parser.add_argument('-Tdamp', '--Tdamp', help='NVT integrator (fix nvt from LAMMPS) damping parameter [timesteps] -- recommended is 100 timesteps (source: LAMMPS documentation)', required=False, type=float, default=100.0)
 parser.add_argument('-runtime', '--runtime', help='simulation run time [seconds]', required=False, type=float, default=600.0)
 parser.add_argument('-frate', '--frate', help='frame rate [seconds]', required=False, type=float, default=1.0)
 parser.add_argument('-sd','--seed', help='random number generator seed', required=False, type=int, default=1234)
@@ -26,6 +27,7 @@ rnuc = float(args.rnuc)
 Kbond = float(args.Kbond)
 Kbend = float(args.Kbend)
 tstep = float(args.tstep)
+Tdamp = float(args.Tdamp)
 runtime = float(args.runtime)
 frate = float(args.frate)
 seed = int(args.seed)
@@ -150,7 +152,9 @@ variable            thyd equal ${tauhyd}/${tstep}                 # hydrolysis t
 variable            rstep equal 0.1/${tstep}                      # reaction interval [simulation steps]
 variable            run_steps equal ${run_time}/${tstep}          # simulation run time [simulation steps]
 variable            dump_time equal ${frame_rate}/${tstep}        # dumping interval [simulation steps]
-
+''')
+f.write("variable            Tdamp equal %.1f*${tstep}                    # fix nvt (NVT integrator) damping parameter [tau units]\n"%(Tdamp))
+f.write('''
 variable            stab_steps equal 1
 
 group               ghosts type 4
@@ -238,7 +242,7 @@ variable            vTailsTime atom v_vSA/v_thyd
 variable            vTailsE atom exp(-v_vTailsTime)
 variable            vTailsP atom 1.0-exp(-v_vTailsTime)
 
-fix                 fNVT AllAtoms_REACT nvt temp 1.0 1.0 $(100.0*${tstep})
+fix                 fNVT AllAtoms_REACT nvt temp 1.0 1.0 ${Tdamp}
 
 variable            realtime equal step*${tstep}
 
