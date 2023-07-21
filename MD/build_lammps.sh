@@ -17,6 +17,7 @@ if [ ! -d $LAMMPSDIR ]; then
                 echo "To do so:" 
                 echo "  Copy this link into your browser: https://download.lammps.org/tars/lammps-29Sep2021.tar.gz"
                 echo "  Extract this tar and copy the resulting file to the lammps directory"
+                exit 0
         else
                 wget -qO- https://download.lammps.org/tars/lammps-29Sep2021.tar.gz | tar xvz 
                 mv lammps* $LAMMPSDIR
@@ -24,6 +25,7 @@ if [ ! -d $LAMMPSDIR ]; then
 else
         echo "You already have a version of LAMMPS installed here. If you are unsure about which version it is delete the ./lammps directory and rerun this program"
         echo "To delete the current LAMMPS version just run 'rm -r ${LAMMPSDIR}'"
+        exit 0
 fi
 
 echo "Copying modified LAMMPS function files and compiling..."
@@ -41,6 +43,7 @@ if [ ! -f $LAMMPSDIR/src/lmp_serial ]; then
 else
         echo "Existing LAMMPS executable found! If you are unsure about which version it is delete the ./lammps directory and rerun this program"
         echo "To delete the current LAMMPS version just run 'rm -r ${LAMMPSDIR}'"
+        exit 0
 fi
 
 echo "Downloaded the September 2021 stable release of LAMMPS, modified it accordingly and compiled it in ${LAMMPSDIR}"
@@ -58,6 +61,7 @@ if [ ! -d $LAMMPSDIR ]; then
                 echo "To do so:" 
                 echo "  Copy this link into your browser: https://download.lammps.org/tars/lammps-15Jun2023.tar.gz"
                 echo "  Extract this tar and copy the resulting file to the lammps directory"
+                exit 0
         else
                 wget -qO- https://download.lammps.org/tars/lammps-15Jun2023.tar.gz | tar xvz 
                 mv lammps* $LAMMPSDIR
@@ -65,6 +69,7 @@ if [ ! -d $LAMMPSDIR ]; then
 else
         echo "You already have a version of LAMMPS installed here. If you are unsure about which version it is delete the ./lammps directory and rerun this program"
         echo "To delete the current LAMMPS version just run 'rm -r ${LAMMPSDIR}'"
+        exit 0
 fi
 
 echo "Copying modified LAMMPS function files and compiling..."
@@ -82,6 +87,7 @@ if [ ! -f $LAMMPSDIR/src/lmp_serial ]; then
 else
         echo "Existing LAMMPS executable found! If you are unsure about which version it is delete the ./lammps directory and rerun this program"
         echo "To delete the current LAMMPS version just run 'rm -r ${LAMMPSDIR}'"
+        exit 0
 fi
 
 echo "Downloaded the June 2023 stable release of LAMMPS, modified it accordingly and compiled it in ${LAMMPSDIR}"
