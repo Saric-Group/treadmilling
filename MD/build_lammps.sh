@@ -20,7 +20,7 @@ if [ ! -d $LAMMPSDIR ]; then
                 exit 0
         else
                 wget -qO- https://download.lammps.org/tars/lammps-29Sep2021.tar.gz | tar xvz 
-                mv lammps* $LAMMPSDIR
+                mv lammps-* $LAMMPSDIR
         fi
 else
         echo "You already have a version of LAMMPS installed here. If you are unsure about which version it is delete the ./lammps directory and rerun this program"
@@ -64,7 +64,7 @@ if [ ! -d $LAMMPSDIR ]; then
                 exit 0
         else
                 wget -qO- https://download.lammps.org/tars/lammps-15Jun2023.tar.gz | tar xvz 
-                mv lammps* $LAMMPSDIR
+                mv lammps-* $LAMMPSDIR
         fi
 else
         echo "You already have a version of LAMMPS installed here. If you are unsure about which version it is delete the ./lammps directory and rerun this program"
