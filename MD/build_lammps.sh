@@ -23,7 +23,7 @@ if [ ! -d $LAMMPSDIR ]; then
         fi
 else
         echo "You already have a version of LAMMPS installed here. If you are unsure about which version it is delete the ./lammps directory and rerun this program"
-        echo "To delete the current LAMMPS version just run 'rm -r ./lammps'"
+        echo "To delete the current LAMMPS version just run 'rm -r ${LAMMPSDIR}'"
 fi
 
 echo "Copying modified LAMMPS function files and compiling..."
@@ -40,7 +40,7 @@ if [ ! -f $LAMMPSDIR/src/lmp_serial ]; then
 	cd "$WDIR"
 else
         echo "Existing LAMMPS executable found! If you are unsure about which version it is delete the ./lammps directory and rerun this program"
-        echo "To delete the current LAMMPS version just run 'rm -r ./lammps'"
+        echo "To delete the current LAMMPS version just run 'rm -r ${LAMMPSDIR}'"
 fi
 
 echo "Downloaded the September 2021 stable release of LAMMPS, modified it accordingly and compiled it in ${LAMMPSDIR}"
@@ -64,7 +64,7 @@ if [ ! -d $LAMMPSDIR ]; then
         fi
 else
         echo "You already have a version of LAMMPS installed here. If you are unsure about which version it is delete the ./lammps directory and rerun this program"
-        echo "To delete the current LAMMPS version just run 'rm -r ./lammps'"
+        echo "To delete the current LAMMPS version just run 'rm -r ${LAMMPSDIR}'"
 fi
 
 echo "Copying modified LAMMPS function files and compiling..."
@@ -81,7 +81,7 @@ if [ ! -f $LAMMPSDIR/src/lmp_serial ]; then
         cd "$WDIR"
 else
         echo "Existing LAMMPS executable found! If you are unsure about which version it is delete the ./lammps directory and rerun this program"
-        echo "To delete the current LAMMPS version just run 'rm -r ./lammps'"
+        echo "To delete the current LAMMPS version just run 'rm -r ${LAMMPSDIR}'"
 fi
 
 echo "Downloaded the June 2023 stable release of LAMMPS, modified it accordingly and compiled it in ${LAMMPSDIR}"
