@@ -31,9 +31,11 @@ Note that:
 05 Apr 2023, Christian Vanhille Campos.
 
 THERE HAVE BEEN NO NEW MODIFICATIONS (according to my notes) SINCE 20/02/2023. HOWEVER, THE IMPLEMENTATION OF CREATION TIME STORAGE (for the hydrolysis part of treadmilling, when computing poff) HAS CHANGED. NOTE THAT THIS PERTAINS TO THE INPUT SCRIPT AND NOT THE LAMMPS FILES SO NOTHING ELSE WAS CHANGED HERE. The modifications to the input script were implemented to solve bugs when nucleating new filaments, as the old implementation would not store the nucleation time for tail monomers of the new dimers. AS IT IS NOW IT WORKS! To see the input script please refer to the examples in MD/examples and to the simulation-generating Python script in MD/generation_files
+As of 21 Jul 2023, a bug in the initialisation of velocities of newly created particles was corrected by Chris. This was introducing a bias toward vx>0 vy>0 vz>0 which is now absent.
 
 -----------------------------------------------------------------------
 
 23 Jun 2023, Ivan Palaia.
 
-I am merging our version of bond/react, with the one from the last distributed version of LAMMPS (15 Jun 2023).
+I merged our version of bond/react (05Apr2023), with the one from the last distributed version of LAMMPS (15Jun2023).
+As of 21 Jul 2023, a bug in the initialisation of velocities of newly created particles was corrected by Chris. This was introducing a bias toward vx>0 vy>0 vz>0 which is now absent.

@@ -3827,9 +3827,9 @@ int FixBondReact::insert_atoms(tagint **my_mega_glove, int iupdate)
         // further control is possible using bond_react_MASTER_group
         // compute |velocity| corresponding to a given temperature t, using specific atom's mass
         double vtnorm = sqrt(t / (force->mvv2e / (dimension * force->boltz)) / atom->mass[twomol->type[m]]);
-        v[n][0] = random[rxnID]->uniform();
-        v[n][1] = random[rxnID]->uniform();
-        v[n][2] = random[rxnID]->uniform();
+        v[n][0] = 0.5-random[rxnID]->uniform();     // Chris 21/07/2023 added "0.5-"
+        v[n][1] = 0.5-random[rxnID]->uniform();     // Chris 21/07/2023 added "0.5-"
+        v[n][2] = 0.5-random[rxnID]->uniform();     // Chris 21/07/2023 added "0.5-"
         double vnorm = sqrt(v[n][0]*v[n][0] + v[n][1]*v[n][1] + v[n][2]*v[n][2]);
         v[n][0] = v[n][0]/vnorm*vtnorm;
         v[n][1] = v[n][1]/vnorm*vtnorm;

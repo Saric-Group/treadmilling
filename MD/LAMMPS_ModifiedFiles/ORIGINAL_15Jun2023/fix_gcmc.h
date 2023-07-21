@@ -117,7 +117,6 @@ class FixGCMC : public Fix {
   int rigidflag, shakeflag;
   char *idrigid, *idshake;
   int triclinic;    // 0 = orthog box, 1 = triclinic
-  int dimension;    // Ivan  MODIFIED
 
   class Compute *c_pe;
 
