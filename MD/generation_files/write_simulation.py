@@ -11,6 +11,7 @@ parser.add_argument('-rnuc', '--rnuc', help='imposed nucleation rate [filaments/
 parser.add_argument('-Kbond', '--Kbond', help='bond constant [kT/sigma2]', required=False, type=float, default=1000.0)
 parser.add_argument('-Kbend', '--Kbend', help='bending constant [kT/sigma2]', required=False, type=float, default=800.0)
 parser.add_argument('-tstep', '--tstep', help='simulation timestep [seconds]', required=False, type=float, default=0.001)
+parser.add_argument('-Tdamp', '--Tdamp', help='NVT integrator (fix nvt from LAMMPS) damping parameter [timesteps] -- recommended is 100 timesteps (source: LAMMPS documentation)', required=False, type=float, default=100.0)
 parser.add_argument('-runtime', '--runtime', help='simulation run time [seconds]', required=False, type=float, default=600.0)
 parser.add_argument('-frate', '--frate', help='frame rate [seconds]', required=False, type=float, default=1.0)
 parser.add_argument('-sd','--seed', help='random number generator seed', required=False, type=int, default=1234)
@@ -26,12 +27,16 @@ rnuc = float(args.rnuc)
 Kbond = float(args.Kbond)
 Kbend = float(args.Kbend)
 tstep = float(args.tstep)
+Tdamp = float(args.Tdamp)
 runtime = float(args.runtime)
 frate = float(args.frate)
 seed = int(args.seed)
 L = float(args.L)
 ICNfils = int(args.ICNfils)
 arrest = args.arrest
+
+# Initialise numpy's RNG
+np.random.seed(seed)
 
 poff = 1.0
 if arrest:
@@ -57,6 +62,11 @@ f.write("poff:\t\t%.1f\n"%(poff))
 f.close()
 
 if ICNfils == 1:
+    alpha = 2*np.pi*np.random.random()
+    TX = 0.5*np.cos(alpha+np.pi)
+    TY = 0.5*np.sin(alpha+np.pi)
+    HX = 0.5*np.cos(alpha)
+    HY = 0.5*np.sin(alpha)
     f = open('%s/configuration.txt'%(gpath), 'w')
     f.write('''First line of this test
 4 atoms
@@ -80,8 +90,8 @@ Masses
 
 Atoms
 
-1 1 2 -0.5 0.0 0.0
-2 1 3 0.5 0.0 0.0
+1 1 2 %f %f 0.0
+2 1 3 %f %f 0.0
 3 0 4 0.0 -0.5 -2.0
 4 0 4 0.0 0.5 -2.0
 
@@ -90,7 +100,7 @@ Bonds
 
 1 1 1 2
 2 1 3 4
-''')
+'''%(TX, TY, HX, HY))
     f.close()
 elif ICNfils == 0:
     f = open('%s/configuration.txt'%(gpath), 'w')
@@ -150,7 +160,9 @@ variable            thyd equal ${tauhyd}/${tstep}                 # hydrolysis t
 variable            rstep equal 0.1/${tstep}                      # reaction interval [simulation steps]
 variable            run_steps equal ${run_time}/${tstep}          # simulation run time [simulation steps]
 variable            dump_time equal ${frame_rate}/${tstep}        # dumping interval [simulation steps]
-
+''')
+f.write("variable            Tdamp equal %.1f*${tstep}                    # fix nvt (NVT integrator) damping parameter [tau units]\n"%(Tdamp))
+f.write('''
 variable            stab_steps equal 1
 
 group               ghosts type 4
@@ -238,8 +250,7 @@ variable            vTailsTime atom v_vSA/v_thyd
 variable            vTailsE atom exp(-v_vTailsTime)
 variable            vTailsP atom 1.0-exp(-v_vTailsTime)
 
-fix                 fLang all langevin 1.0 1.0 1.0 ${seed}
-fix                 fNVE AllAtoms_REACT nve
+fix                 fNVT AllAtoms_REACT nvt temp 1.0 1.0 ${Tdamp}
 
 variable            realtime equal step*${tstep}
 
