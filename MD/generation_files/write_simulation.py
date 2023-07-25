@@ -10,6 +10,7 @@ parser.add_argument('-thyd', '--thyd', help='hydrolysis time [seconds]', require
 parser.add_argument('-rnuc', '--rnuc', help='imposed nucleation rate [filaments/second]', required=False, type=float, default=1.0)
 parser.add_argument('-Kbond', '--Kbond', help='bond constant [kT/sigma2]', required=False, type=float, default=1000.0)
 parser.add_argument('-Kbend', '--Kbend', help='bending constant [kT/sigma2]', required=False, type=float, default=800.0)
+parser.add_argument('-Kobst', '--Kobst', help='bending constant of the obstacles [kT/sigma2]', required=False, type=float, default=100.0)
 parser.add_argument('-tstep', '--tstep', help='simulation timestep [seconds]', required=False, type=float, default=0.001)
 parser.add_argument('-runtime', '--runtime', help='simulation run time [seconds]', required=False, type=float, default=600.0)
 parser.add_argument('-frate', '--frate', help='frame rate [seconds]', required=False, type=float, default=1.0)
@@ -25,6 +26,7 @@ thyd = float(args.thyd)
 rnuc = float(args.rnuc)
 Kbond = float(args.Kbond)
 Kbend = float(args.Kbend)
+Kobst = float(args.Kobst)
 tstep = float(args.tstep)
 runtime = float(args.runtime)
 frate = float(args.frate)
@@ -72,7 +74,7 @@ if ICNfils == 1:
 0 angles
 4 atom types
 1 bond types
-1 angle types
+2 angle types
 ''')
     f.write('%.1f %.1f xlo xhi\n'%(-L/2,L/2))
     f.write('%.1f %.1f ylo yhi\n'%(-L/2,L/2))
@@ -108,7 +110,7 @@ elif ICNfils == 0:
 0 angles
 4 atom types
 1 bond types
-1 angle types
+2 angle types
 ''')
     f.write('%.1f %.1f xlo xhi\n'%(-L/2,L/2))
     f.write('%.1f %.1f ylo yhi\n'%(-L/2,L/2))
@@ -133,6 +135,59 @@ Bonds
 1 1 1 2
 ''')
     f.close()
+elif ICNfils > 1: ## RING POLYMER! - L = N = ICNfils
+    N = ICNfils
+    r = N/(2*np.pi)
+    a = 1/r
+    f = open('%s/configuration.txt'%(gpath), 'w')
+    f.write('''First line of this test
+%d atoms
+%d bonds
+%d angles
+4 atom types
+1 bond types
+2 angle types
+'''%(N+2,N+1,N))
+    f.write('%.1f %.1f xlo xhi\n'%(-L/2,L/2))
+    f.write('%.1f %.1f ylo yhi\n'%(-L/2,L/2))
+    f.write('''-4.25 0.25 zlo zhi
+
+Masses
+
+1 1
+2 1
+3 1
+4 1
+
+
+Atoms
+
+''')
+    f.write("1 0 4 0.0 -0.5 -2.0\n")
+    f.write("2 0 4 0.0 0.5 -2.0\n")
+    for i in range(N):
+        X = r*np.cos(i*a)
+        Y = r*np.sin(i*a)
+        f.write("%d 1 1 %f %f 0.0\n"%(3+i,X,Y))
+    f.write('''
+
+Bonds
+
+1 1 1 2
+''')
+    for i in range(N-1):
+        f.write("%d 1 %d %d\n"%(2+i,3+i,4+i))
+    f.write("%d 1 %d %d\n"%(3+i,4+i,3))
+    f.write('''
+
+Angles
+
+''')
+    for i in range(N-2):
+        f.write("%d 2 %d %d %d\n"%(i+1,3+i,4+i,5+i))
+    f.write("%d 2 %d %d %d\n"%(i+2,4+i,5+i,3))
+    f.write("%d 2 %d %d %d\n"%(i+3,5+i,3,4))
+    f.close()
 
 f = open('%s/in.local'%(gpath), 'w')
 f.write('''log                 log.txt
@@ -147,6 +202,7 @@ f.write("variable            rnuc equal %.1f                                # nu
 f.write("variable            poff equal %.1f                                # shrinking reaction initiation probability (0 or 1)\n"%(poff))
 f.write("variable            Kbond equal %.1f                               # bond constant [kT/sigma2]\n"%(Kbond))
 f.write("variable            Kbend equal %.1f                               # bend constant [kT/sigma2]\n"%(Kbend))
+f.write("variable            Kobst equal %.1f                               # bend constant [kT/sigma2]\n"%(Kobst))
 f.write("variable            tstep equal %f                                 # simulation timestep size [seconds]\n"%(tstep))
 f.write("variable            run_time equal %.1f                            # simulation run time [seconds]\n"%(runtime))
 f.write("variable            frame_rate equal %.1f                          # dumping interval [seconds]\n"%(frate))
@@ -168,7 +224,8 @@ bond_style          harmonic
 bond_coeff          1 ${Kbond} 1.0
 
 angle_style         harmonic
-angle_coeff         * ${Kbend} 180.0
+angle_coeff         1 ${Kbend} 180.0
+angle_coeff         2 ${Kobst} 180.0
 
 pair_style          hybrid/overlay zero 1.50 cosine/squared 1.50
 pair_coeff          * * cosine/squared 0.00 1.00 1.10
