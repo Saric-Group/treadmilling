@@ -19,6 +19,7 @@ parser.add_argument('-L','--L', help='box size [sigma]', required=False, type=fl
 parser.add_argument('-ICNfils','--ICNfils', help='number of filaments in Initial Conditions [0 or 1] -- if more than 1 then creates circular obstacle of that size; if less than 0 then creates filament across X = 0', required=False, type=int, default=0)
 parser.add_argument('-arrest','--arrest', help='arrest treadmilling dynamics: turn shrinking off', required=False, action = 'store_true')
 parser.add_argument('-fixlength','--fixlength', help='fix the length of the filaments', required=False, type=float, default=0)
+parser.add_argument('-Xbias','--Xbias', help='only nucleate filaments along the positive X direction', required=False, action = 'store_true')
 
 args = parser.parse_args()
 gpath = args.path
@@ -36,6 +37,7 @@ L = float(args.L)
 ICNfils = int(args.ICNfils)
 arrest = args.arrest
 fixL = float(args.fixlength)
+Xbias = args.Xbias
 
 # Initialise numpy's RNG
 np.random.seed(seed)
@@ -327,8 +329,12 @@ variable            vMaskSAZ atom "v_vSA == 0"
 fix                 fSAZ all store/state 10 v_vMaskSAZ
 
 fix                 freact all bond/react  stabilization yes AllAtoms 0.1  reset_mol_ids no         &
-                react Nucleation all ${rstep} 0.900000 1.100000 mPreNucleation mPostNucleation Reactions/map_Nucleation.txt prob 1.0 ${seed} stabilize_steps ${stab_steps} modify_create overlap 0.9 modify_create nuc yes         &
-                react DimerOn all ${rstep} 0.900000 1.100000 mPreDimerOn mPostDimerOn Reactions/map_DimerOn.txt prob 1.0 ${seed} stabilize_steps ${stab_steps} modify_create fit 1 modify_create overlap 0.9         &
+                ''')
+if Xbias:
+    f.write("react Nucleation all ${rstep} 0.900000 1.100000 mPreNucleation mPostNucleation Reactions/map_Nucleation.txt prob 1.0 ${seed} stabilize_steps ${stab_steps} modify_create overlap 0.9 modify_create nuc xor         &\n")
+else:
+    f.write("react Nucleation all ${rstep} 0.900000 1.100000 mPreNucleation mPostNucleation Reactions/map_Nucleation.txt prob 1.0 ${seed} stabilize_steps ${stab_steps} modify_create overlap 0.9 modify_create nuc yes         &\n")
+f.write('''                react DimerOn all ${rstep} 0.900000 1.100000 mPreDimerOn mPostDimerOn Reactions/map_DimerOn.txt prob 1.0 ${seed} stabilize_steps ${stab_steps} modify_create fit 1 modify_create overlap 0.9         &
                 react TrimerOn all ${rstep} 0.900000 1.100000 mPreTrimerOn mPostTrimerOn Reactions/map_TrimerOn.txt prob 1.0 ${seed} stabilize_steps ${stab_steps} modify_create fit 1 modify_create overlap 0.9         &
                 react OligomerOn all ${rstep} 0.900000 1.100000 mPreOligomerOn mPostOligomerOn Reactions/map_OligomerOn.txt prob 1.0 ${seed} stabilize_steps ${stab_steps} modify_create fit 1 modify_create overlap 0.9         &
                 react OligomerOff all ${rstep} 0.900000 1.100000 mPreOligomerOff mPostOligomerOff Reactions/map_OligomerOff.txt prob ${poff} ${seed} stabilize_steps ${stab_steps}         &
