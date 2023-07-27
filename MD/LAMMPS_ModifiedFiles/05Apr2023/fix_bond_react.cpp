@@ -432,7 +432,8 @@ FixBondReact::FixBondReact(LAMMPS *lmp, int narg, char **arg) :
             if (iarg+2 > narg) error->all(FLERR,"Illegal fix bond/react command: "
                                           "'modify_create' has too few arguments");
             if (strcmp(arg[iarg+1],"no") == 0) modify_create_nucrand[rxn] = -1; //default
-            else if (strcmp(arg[iarg+1],"yes") == 0) modify_create_nucrand[rxn] = 1;
+            else if (strcmp(arg[iarg+1],"yes") == 0) modify_create_nucrand[rxn] = 1; // random orientation
+            else if (strcmp(arg[iarg+1],"xor") == 0) modify_create_nucrand[rxn] = 0; // positive orientation in X - Chris 27/07/2023
             iarg += 2;
           } else if (strcmp(arg[iarg],"overlap") == 0) {
             if (iarg+2 > narg) error->all(FLERR,"Illegal fix bond/react command: "
@@ -3628,7 +3629,7 @@ int FixBondReact::insert_atoms(tagint **my_mega_glove, int iupdate)
         // Added vector modify_create_nucrand to store random nucleation flags for each reaction - Chris 20/02/2023
         // If modify_create_nucrand selected then redefine xfrozen (actual position of template nucleator in the reaction) to a random position within the box
         // Chris - 20/02/2023
-        if (modify_create_nucrand[rxnID] >= 0) {
+        if (modify_create_nucrand[rxnID] > 0) {
           for (int k = 0; k < 3; k++) {
             if (dimension == 2 && k == 2) {
               xfrozen[fit_incr][k] = 0.0;
@@ -3642,7 +3643,23 @@ int FixBondReact::insert_atoms(tagint **my_mega_glove, int iupdate)
               }
             }
           }
-          // printf("            after random redefinition: [%.2f, %.2f, %.2f] -> [%.2f, %.2f, %.2f]\n", oxfrozen[fit_incr][0], oxfrozen[fit_incr][1], oxfrozen[fit_incr][2], xfrozen[fit_incr][0], xfrozen[fit_incr][1], xfrozen[fit_incr][2]);
+        }
+        else if (modify_create_nucrand[rxnID] == 0) { // only positive X orientation! -- Chris 27/07/2023
+          if (fit_incr == 0) { // random position
+            for (int k = 0; k < 3; k++) {
+              if (dimension == 2 && k == 2) {
+                xfrozen[fit_incr][k] = 0.0;
+              }
+              else {
+                xfrozen[fit_incr][k] = (domain->boxhi[k] - domain->boxlo[k]) * (random[rxnID]->uniform()-0.5);
+              }
+            }
+          }
+          else { // positive in X only
+            xfrozen[fit_incr][0] = xfrozen[0][0] + fit_incr;
+            xfrozen[fit_incr][1] = xfrozen[0][1];
+            xfrozen[fit_incr][2] = xfrozen[0][2];
+          }
         }
         // New boundary implementation, without using the closest_image() function from domain.cpp, which sometimes returns the wrong ID, likely due to the resetting of molecules IDs as new particles are created (part of the fix_bond_react.cpp)
         // Chris - 20/02/2023
@@ -3684,6 +3701,7 @@ int FixBondReact::insert_atoms(tagint **my_mega_glove, int iupdate)
       for (int j = 0; j < 3; j++)
         rotmat[i][j] = superposer.R[i][j];
     memory->destroy(xfrozen);
+    memory->destroy(oxfrozen); // Chris added this 27/07/2023
     memory->destroy(xmobile);
   }
   MPI_Allreduce(MPI_IN_PLACE,&fitroot,1,MPI_INT,MPI_SUM,world);

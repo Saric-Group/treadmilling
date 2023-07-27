@@ -1,2 +1,4 @@
 .*
-MD/lammps*
+MD/lammps
+MD/lammps-*
+MD/lammps*2*
