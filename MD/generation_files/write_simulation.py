@@ -16,8 +16,9 @@ parser.add_argument('-runtime', '--runtime', help='simulation run time [seconds]
 parser.add_argument('-frate', '--frate', help='frame rate [seconds]', required=False, type=float, default=1.0)
 parser.add_argument('-sd','--seed', help='random number generator seed', required=False, type=int, default=1234)
 parser.add_argument('-L','--L', help='box size [sigma]', required=False, type=float, default=200)
-parser.add_argument('-ICNfils','--ICNfils', help='number of filaments in Initial Conditions [0 or 1]', required=False, type=int, default=0)
+parser.add_argument('-ICNfils','--ICNfils', help='number of filaments in Initial Conditions [0 or 1] -- if more than 1 then creates circular obstacle of that size; if less than 0 then creates filament across X = 0', required=False, type=int, default=0)
 parser.add_argument('-arrest','--arrest', help='arrest treadmilling dynamics: turn shrinking off', required=False, action = 'store_true')
+parser.add_argument('-fixlength','--fixlength', help='fix the length of the filaments', required=False, type=float, default=0)
 
 args = parser.parse_args()
 gpath = args.path
@@ -34,6 +35,7 @@ seed = int(args.seed)
 L = float(args.L)
 ICNfils = int(args.ICNfils)
 arrest = args.arrest
+fixL = float(args.fixlength)
 
 # Initialise numpy's RNG
 np.random.seed(seed)
@@ -187,6 +189,64 @@ Angles
         f.write("%d 2 %d %d %d\n"%(i+1,3+i,4+i,5+i))
     f.write("%d 2 %d %d %d\n"%(i+2,4+i,5+i,3))
     f.write("%d 2 %d %d %d\n"%(i+3,5+i,3,4))
+    f.close()
+elif ICNfils < 0: ## LINE POLYMER! - cross the box at X = 0 w/ L = -ICNfls
+    N = int(-ICNfils)
+    natoms = N+2
+    nbonds = N
+    nangls = N-2
+    if N == int(L):
+        nbonds = N+1
+        nangls = N
+    f = open('%s/configuration.txt'%(gpath), 'w')
+    f.write('''First line of this test
+%d atoms
+%d bonds
+%d angles
+4 atom types
+1 bond types
+2 angle types
+'''%(natoms,nbonds,nangls))
+    f.write('%.1f %.1f xlo xhi\n'%(-L/2,L/2))
+    f.write('%.1f %.1f ylo yhi\n'%(-L/2,L/2))
+    f.write('''-4.25 0.25 zlo zhi
+
+Masses
+
+1 1
+2 1
+3 1
+4 1
+
+
+Atoms
+
+''')
+    f.write("1 0 4 0.0 -0.5 -2.0\n")
+    f.write("2 0 4 0.0 0.5 -2.0\n")
+    Y0 = -N/2.0+0.5
+    for i in range(N):
+        f.write("%d 1 1 %f %f 0.0\n"%(3+i,0.0,Y0+i))
+    f.write('''
+
+Bonds
+
+1 1 1 2
+''')
+    for i in range(N-1):
+        f.write("%d 1 %d %d\n"%(2+i,3+i,4+i))
+    if N == int(L):
+        f.write("%d 1 %d %d\n"%(3+i,4+i,3))
+    f.write('''
+
+Angles
+
+''')
+    for i in range(N-2):
+        f.write("%d 2 %d %d %d\n"%(i+1,3+i,4+i,5+i))
+    if N == int(L):
+        f.write("%d 2 %d %d %d\n"%(i+2,4+i,5+i,3))
+        f.write("%d 2 %d %d %d\n"%(i+3,5+i,3,4))
     f.close()
 
 f = open('%s/in.local'%(gpath), 'w')
