@@ -20,6 +20,7 @@ parser.add_argument('-ICNfils','--ICNfils', help='number of filaments in Initial
 parser.add_argument('-arrest','--arrest', help='arrest treadmilling dynamics: turn shrinking off', required=False, action = 'store_true')
 parser.add_argument('-fixlength','--fixlength', help='fix the length of the filaments', required=False, type=float, default=0)
 parser.add_argument('-Xbias','--Xbias', help='only nucleate filaments along the positive X direction', required=False, action = 'store_true')
+parser.add_argument('-attraction','--attraction', help='turn on interfilament attraction', required=False, action = 'store_true')
 
 args = parser.parse_args()
 gpath = args.path
@@ -38,6 +39,7 @@ ICNfils = int(args.ICNfils)
 arrest = args.arrest
 fixL = float(args.fixlength)
 Xbias = args.Xbias
+attraction = args.attraction
 
 # Initialise numpy's RNG
 np.random.seed(seed)
@@ -292,14 +294,21 @@ angle_coeff         2 ${Kobst} 180.0
 pair_style          hybrid/overlay zero 1.50 cosine/squared 1.50
 pair_coeff          * * cosine/squared 0.00 1.00 1.10
 pair_coeff          * * zero 1.50
-pair_coeff          1 1 cosine/squared 1.00 1.00 1.00 wca
-pair_coeff          1 2 cosine/squared 1.00 1.00 1.00 wca
+''')
+if attraction:
+    f.write("pair_coeff          1 1 cosine/squared 10.00 1.00 1.50 wca\n")
+else:
+    f.write("pair_coeff          1 1 cosine/squared 1.00 1.00 1.00 wca\n")
+f.write('''pair_coeff          1 2 cosine/squared 1.00 1.00 1.00 wca
 pair_coeff          1 3 cosine/squared 1.00 1.00 1.00 wca
 pair_coeff          2 2 cosine/squared 1.00 1.00 1.00 wca
 pair_coeff          2 3 cosine/squared 1.00 1.00 1.00 wca
 pair_coeff          3 3 cosine/squared 1.00 1.00 1.00 wca
 
-# Nucleation reactions molecular templates
+''')
+if attraction:
+    f.write("neigh_modify        exclude molecule/intra all\n\n")
+f.write('''# Nucleation reactions molecular templates
 molecule            mPreNucleation Reactions/pre_Nucleation.txt
 molecule            mPostNucleation Reactions/post_Nucleation.txt
 
