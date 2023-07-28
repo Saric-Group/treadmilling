@@ -433,7 +433,11 @@ FixBondReact::FixBondReact(LAMMPS *lmp, int narg, char **arg) :
                                           "'modify_create' has too few arguments");
             if (strcmp(arg[iarg+1],"no") == 0) modify_create_nucrand[rxn] = -1; //default
             else if (strcmp(arg[iarg+1],"yes") == 0) modify_create_nucrand[rxn] = 1; // random orientation
-            else if (strcmp(arg[iarg+1],"xor") == 0) modify_create_nucrand[rxn] = 0; // positive orientation in X - Chris 27/07/2023
+            else if (strcmp(arg[iarg+1],"xor") == 0) modify_create_nucrand[rxn] = 0; // positive orientation in X
+            else if (strcmp(arg[iarg+1],"mod") == 0) {
+              modify_create_nucrand[rxn] = utils::numeric(FLERR,arg[iarg+2],false,lmp); // modulation in Y -- read standard deviation of normal distribution for nucleation position -- Chris 28/07/2023
+              iarg += 1;
+            }
             iarg += 2;
           } else if (strcmp(arg[iarg],"overlap") == 0) {
             if (iarg+2 > narg) error->all(FLERR,"Illegal fix bond/react command: "
@@ -3629,7 +3633,7 @@ int FixBondReact::insert_atoms(tagint **my_mega_glove, int iupdate)
         // Added vector modify_create_nucrand to store random nucleation flags for each reaction - Chris 20/02/2023
         // If modify_create_nucrand selected then redefine xfrozen (actual position of template nucleator in the reaction) to a random position within the box
         // Chris - 20/02/2023
-        if (modify_create_nucrand[rxnID] > 0) {
+        if (modify_create_nucrand[rxnID] == 1) {
           for (int k = 0; k < 3; k++) {
             if (dimension == 2 && k == 2) {
               xfrozen[fit_incr][k] = 0.0;
@@ -3659,6 +3663,24 @@ int FixBondReact::insert_atoms(tagint **my_mega_glove, int iupdate)
             xfrozen[fit_incr][0] = xfrozen[0][0] + fit_incr;
             xfrozen[fit_incr][1] = xfrozen[0][1];
             xfrozen[fit_incr][2] = xfrozen[0][2];
+          }
+        }
+        if (modify_create_nucrand[rxnID] > 1) { // Sample normal distribution in Y (with standard deviation modify_create_nucrand[rxnID]) for new position -- Chris 28/07/2023
+          if (fit_incr == 0) { // random position
+            xfrozen[fit_incr][0] = (domain->boxhi[0] - domain->boxlo[0]) * (random[rxnID]->uniform()-0.5);
+            // Two RN -> 1 Normal-distributed number
+            double u1 = random[rxnID]->uniform();
+            double u2 = random[rxnID]->uniform();
+            xfrozen[fit_incr][1] = sqrt(-2*log(u1))*cos(2*M_PI*u2)*modify_create_nucrand[rxnID]+0.0;
+            xfrozen[fit_incr][2] = 0.0;
+            if (dimension == 3) {
+              xfrozen[fit_incr][2] = (domain->boxhi[2] - domain->boxlo[2]) * (random[rxnID]->uniform()-0.5);
+            }
+          }
+          else { // positive in X only
+            for (int k = 0; k < 3; k++) {
+              xfrozen[fit_incr][k] = xfrozen[0][k] + (oxfrozen[fit_incr][k] - oxfrozen[0][k]);
+            }
           }
         }
         // New boundary implementation, without using the closest_image() function from domain.cpp, which sometimes returns the wrong ID, likely due to the resetting of molecules IDs as new particles are created (part of the fix_bond_react.cpp)
