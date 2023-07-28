@@ -18,7 +18,6 @@ parser.add_argument('-sd','--seed', help='random number generator seed', require
 parser.add_argument('-L','--L', help='box size [sigma]', required=False, type=float, default=200)
 parser.add_argument('-ICNfils','--ICNfils', help='number of filaments in Initial Conditions [0 or 1] -- if more than 1 then creates circular obstacle of that size; if less than 0 then creates filament across X = 0', required=False, type=int, default=0)
 parser.add_argument('-arrest','--arrest', help='arrest treadmilling dynamics: turn shrinking off', required=False, action = 'store_true')
-parser.add_argument('-fixlength','--fixlength', help='fix the length of the filaments', required=False, type=float, default=0)
 parser.add_argument('-Xbias','--Xbias', help='only nucleate filaments along the positive X direction', required=False, action = 'store_true')
 parser.add_argument('-attraction','--attraction', help='turn on interfilament attraction', required=False, action = 'store_true')
 parser.add_argument('-saturate','--saturate', help='set a maximum number of particles in the system', required=False, type=int, default=0)
@@ -38,13 +37,9 @@ seed = int(args.seed)
 L = float(args.L)
 ICNfils = int(args.ICNfils)
 arrest = args.arrest
-fixL = float(args.fixlength)
 Xbias = args.Xbias
 attraction = args.attraction
 saturate = int(args.saturate)
-
-if saturate == 0:
-    saturate = L*L+10
 
 # Initialise numpy's RNG
 np.random.seed(seed)
@@ -52,6 +47,9 @@ np.random.seed(seed)
 poff = 1.0
 if arrest:
     poff = 0.0
+
+if saturate == 0:
+    saturate = L*L+10
 
 r = os.system('mkdir %s'%(gpath))
 r = os.system('mkdir %s/Reactions'%(gpath))
@@ -70,6 +68,23 @@ f.write("frate [s]:\t\t%.1f\n"%(frate))
 f.write("seed:\t\t\t%d\n"%(seed))
 f.write("box size:\t\t%.1f\n"%(L))
 f.write("poff:\t\t%.1f\n"%(poff))
+if attraction:
+    f.write("Attraction:\t\tYes\n")
+else:
+    f.write("Attraction:\t\tNo\n")
+f.write("Saturation number:\t%d\n"%(saturate))
+if Xbias:
+    f.write("Only X+:\t\tYes\n")
+else:
+    f.write("Only X+:\t\tNo\n")
+if ICNfils == 0:
+    f.write("IC:\t\t\tEMPTY\n")
+elif ICNfils == 1:
+    f.write("IC:\t\t\tNUCLEUS\n")
+elif ICNfils > 1:
+    f.write("IC:\t\t\tCIRCULAR OBSTACLE (N = %d)\n"%(ICNfils))
+elif ICNfils < 0:
+    f.write("IC:\t\t\tLINEAR OBSTACLE (N = %d)\n"%(-ICNfils))
 f.close()
 
 if ICNfils == 1:
