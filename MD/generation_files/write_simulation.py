@@ -67,7 +67,7 @@ f.write("runtime [s]:\t\t%.1f\n"%(runtime))
 f.write("frate [s]:\t\t%.1f\n"%(frate))
 f.write("seed:\t\t\t%d\n"%(seed))
 f.write("box size:\t\t%.1f\n"%(L))
-f.write("poff:\t\t%.1f\n"%(poff))
+f.write("poff:\t\t\t%.1f\n"%(poff))
 if attraction:
     f.write("Attraction:\t\tYes\n")
 else:
