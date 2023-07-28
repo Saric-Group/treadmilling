@@ -56,7 +56,7 @@ r = os.system('mkdir %s/Reactions'%(gpath))
 r = os.system('cp -r Reactions/*  %s/Reactions'%(gpath))
 
 f = open('%s/info.txt'%(gpath), 'w')
-f.write("path:\t\t%s\n"%(gpath))
+f.write("path:\t\t\t%s\n"%(gpath))
 f.write("ron [mons/s]:\t\t%.1f\n"%(ron))
 f.write("thyd [s]:\t\t%.1f\n"%(thyd))
 f.write("rnuc [fils/s]:\t\t%.1f\n"%(rnuc))
