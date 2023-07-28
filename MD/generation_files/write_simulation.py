@@ -51,6 +51,13 @@ if arrest:
 if saturate == 0:
     saturate = L*L+10
 
+if os.access(gpath, os.F_OK):
+    print()
+    print("Watch out! This simulation path already exists... Please double check that you didn't make any mistakes :)")
+    print("To proceed rerun the python script after removing the directory: rm -r %s"%(gpath))
+    print()
+    exit()
+
 r = os.system('mkdir %s'%(gpath))
 r = os.system('mkdir %s/Reactions'%(gpath))
 r = os.system('cp -r Reactions/*  %s/Reactions'%(gpath))
