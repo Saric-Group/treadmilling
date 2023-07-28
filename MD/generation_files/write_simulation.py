@@ -21,6 +21,7 @@ parser.add_argument('-arrest','--arrest', help='arrest treadmilling dynamics: tu
 parser.add_argument('-fixlength','--fixlength', help='fix the length of the filaments', required=False, type=float, default=0)
 parser.add_argument('-Xbias','--Xbias', help='only nucleate filaments along the positive X direction', required=False, action = 'store_true')
 parser.add_argument('-attraction','--attraction', help='turn on interfilament attraction', required=False, action = 'store_true')
+parser.add_argument('-saturate','--saturate', help='set a maximum number of particles in the system', required=False, type=int, default=0)
 
 args = parser.parse_args()
 gpath = args.path
@@ -40,6 +41,10 @@ arrest = args.arrest
 fixL = float(args.fixlength)
 Xbias = args.Xbias
 attraction = args.attraction
+saturate = int(args.saturate)
+
+if saturate == 0:
+    saturate = L*L+10
 
 # Initialise numpy's RNG
 np.random.seed(seed)
@@ -271,7 +276,10 @@ f.write("variable            tstep equal %f                                 # si
 f.write("variable            run_time equal %.1f                            # simulation run time [seconds]\n"%(runtime))
 f.write("variable            frame_rate equal %.1f                          # dumping interval [seconds]\n"%(frate))
 f.write("variable            seed equal %d                                  # random number generator seed\n"%(seed))
-f.write('''
+f.write("variable            maxatoms equal %d                              # maximum number of atoms allowed in the system\n"%(saturate))
+f.write('''variable            condatoms equal "atoms >= v_maxatoms+2"
+variable            pon equal (1-v_condatoms)                     # growing reaction initiation probability (0 or 1)
+
 variable            kon atom ${ron}/10.0                          # growth probability
 variable            knuc atom ${rnuc}/10.0                        # nucleation probability
 variable            thyd equal ${tauhyd}/${tstep}                 # hydrolysis time [simulation steps]
@@ -340,12 +348,12 @@ fix                 fSAZ all store/state 10 v_vMaskSAZ
 fix                 freact all bond/react  stabilization yes AllAtoms 0.1  reset_mol_ids no         &
                 ''')
 if Xbias:
-    f.write("react Nucleation all ${rstep} 0.900000 1.100000 mPreNucleation mPostNucleation Reactions/map_Nucleation.txt prob 1.0 ${seed} stabilize_steps ${stab_steps} modify_create overlap 0.9 modify_create nuc xor         &\n")
+    f.write("react Nucleation all ${rstep} 0.900000 1.100000 mPreNucleation mPostNucleation Reactions/map_Nucleation.txt prob v_pon ${seed} stabilize_steps ${stab_steps} modify_create overlap 0.9 modify_create nuc xor         &\n")
 else:
-    f.write("react Nucleation all ${rstep} 0.900000 1.100000 mPreNucleation mPostNucleation Reactions/map_Nucleation.txt prob 1.0 ${seed} stabilize_steps ${stab_steps} modify_create overlap 0.9 modify_create nuc yes         &\n")
-f.write('''                react DimerOn all ${rstep} 0.900000 1.100000 mPreDimerOn mPostDimerOn Reactions/map_DimerOn.txt prob 1.0 ${seed} stabilize_steps ${stab_steps} modify_create fit 1 modify_create overlap 0.9         &
-                react TrimerOn all ${rstep} 0.900000 1.100000 mPreTrimerOn mPostTrimerOn Reactions/map_TrimerOn.txt prob 1.0 ${seed} stabilize_steps ${stab_steps} modify_create fit 1 modify_create overlap 0.9         &
-                react OligomerOn all ${rstep} 0.900000 1.100000 mPreOligomerOn mPostOligomerOn Reactions/map_OligomerOn.txt prob 1.0 ${seed} stabilize_steps ${stab_steps} modify_create fit 1 modify_create overlap 0.9         &
+    f.write("react Nucleation all ${rstep} 0.900000 1.100000 mPreNucleation mPostNucleation Reactions/map_Nucleation.txt prob v_pon ${seed} stabilize_steps ${stab_steps} modify_create overlap 0.9 modify_create nuc yes         &\n")
+f.write('''                react DimerOn all ${rstep} 0.900000 1.100000 mPreDimerOn mPostDimerOn Reactions/map_DimerOn.txt prob v_pon ${seed} stabilize_steps ${stab_steps} modify_create fit 1 modify_create overlap 0.9         &
+                react TrimerOn all ${rstep} 0.900000 1.100000 mPreTrimerOn mPostTrimerOn Reactions/map_TrimerOn.txt prob v_pon ${seed} stabilize_steps ${stab_steps} modify_create fit 1 modify_create overlap 0.9         &
+                react OligomerOn all ${rstep} 0.900000 1.100000 mPreOligomerOn mPostOligomerOn Reactions/map_OligomerOn.txt prob v_pon ${seed} stabilize_steps ${stab_steps} modify_create fit 1 modify_create overlap 0.9         &
                 react OligomerOff all ${rstep} 0.900000 1.100000 mPreOligomerOff mPostOligomerOff Reactions/map_OligomerOff.txt prob ${poff} ${seed} stabilize_steps ${stab_steps}         &
                 react QuartomerOff all ${rstep} 0.900000 1.100000 mPreQuartomerOff mPostQuartomerOff Reactions/map_QuartomerOff.txt prob ${poff} ${seed} stabilize_steps ${stab_steps}         &
                 react TrimerOff all ${rstep} 0.900000 1.100000 mPreTrimerOff mPostTrimerOff Reactions/map_TrimerOff.txt prob ${poff} ${seed} stabilize_steps ${stab_steps}         &
