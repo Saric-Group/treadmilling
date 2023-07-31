@@ -23,6 +23,9 @@ parser.add_argument('-attraction','--attraction', help='turn on interfilament at
 parser.add_argument('-saturate','--saturate', help='set a maximum number of particles in the system', required=False, type=int, default=0)
 parser.add_argument('-curvature','--curvature', help='activate the curvature orientation bias', required=False, action = 'store_true')
 parser.add_argument('-Fcurv','--Fcurv', help='magnitude of the curvature force', required=False, type=float, default=10.0)
+parser.add_argument('-modulation','--modulation', help='activate the rates modulation', required=False, action = 'store_true')
+parser.add_argument('-profW','--profW', help='modulating profile width [sigma]', required=False, type=float, default=20.0)
+parser.add_argument('-modt','--modt', help='modulation time kick-in', required=False, type=float, default=0.0)
 
 args = parser.parse_args()
 gpath = args.path
@@ -44,6 +47,9 @@ attraction = args.attraction
 saturate = int(args.saturate)
 curvature = args.curvature
 Fcurv = float(args.Fcurv)
+modulation = args.modulation
+profW = float(args.profW)
+modt = float(args.modt)
 
 # Initialise numpy's RNG
 np.random.seed(seed)
@@ -88,6 +94,10 @@ if attraction:
 else:
     f.write("Attraction:\t\tNo\n")
 f.write("Curvature F [kT/sigma]:\t%.1f\n"%(Fcurv))
+if modulation:
+    f.write("Modulation of rates:\n")
+    f.write("  Width [sigma]:\t%.1f\n"%(profW))
+    f.write("  Time [s]:\t\t%.1f\n"%(modt))
 f.write("Saturation number:\t%d\n"%(saturate))
 if Xbias:
     f.write("Only X+:\t\tYes\n")
@@ -312,8 +322,12 @@ f.write("variable            fCurv equal %f                              # magni
 f.write('''variable            condatoms equal "atoms >= v_maxatoms+2"
 variable            pon equal (1-v_condatoms)                     # growing reaction initiation probability (0 or 1)
 
-variable            kon atom ${ron}/10.0                          # growth probability
-variable            knuc atom ${rnuc}/10.0                        # nucleation probability
+''')
+if modulation:
+    f.write("variable            kon atom ${ron}/10.0*exp(-y*y/%f)                          # growth probability\n"%(profW*profW))
+else:
+    f.write("variable            kon atom ${ron}/10.0                          # growth probability\n")
+f.write('''variable            knuc atom ${rnuc}/10.0                        # nucleation probability
 variable            thyd equal ${tauhyd}/${tstep}                 # hydrolysis time [simulation steps]
 variable            rstep equal 0.1/${tstep}                      # reaction interval [simulation steps]
 variable            run_steps equal ${run_time}/${tstep}          # simulation run time [simulation steps]
@@ -381,6 +395,8 @@ fix                 freact all bond/react  stabilization yes AllAtoms 0.1  reset
                 ''')
 if Xbias:
     f.write("react Nucleation all ${rstep} 0.900000 1.100000 mPreNucleation mPostNucleation Reactions/map_Nucleation.txt prob v_pon ${seed} stabilize_steps ${stab_steps} modify_create overlap 0.9 modify_create nuc xor         &\n")
+elif modulation:
+    f.write("react Nucleation all ${rstep} 0.900000 1.100000 mPreNucleation mPostNucleation Reactions/map_Nucleation.txt prob v_pon ${seed} stabilize_steps ${stab_steps} modify_create overlap 0.9 modify_create nuc mod %f         &\n"%(profW))
 else:
     f.write("react Nucleation all ${rstep} 0.900000 1.100000 mPreNucleation mPostNucleation Reactions/map_Nucleation.txt prob v_pon ${seed} stabilize_steps ${stab_steps} modify_create overlap 0.9 modify_create nuc yes         &\n")
 f.write('''                react DimerOn all ${rstep} 0.900000 1.100000 mPreDimerOn mPostDimerOn Reactions/map_DimerOn.txt prob v_pon ${seed} stabilize_steps ${stab_steps} modify_create fit 1 modify_create overlap 0.9         &
