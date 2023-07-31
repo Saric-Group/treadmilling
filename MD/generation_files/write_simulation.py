@@ -21,6 +21,8 @@ parser.add_argument('-arrest','--arrest', help='arrest treadmilling dynamics: tu
 parser.add_argument('-Xbias','--Xbias', help='only nucleate filaments along the positive X direction', required=False, action = 'store_true')
 parser.add_argument('-attraction','--attraction', help='turn on interfilament attraction', required=False, action = 'store_true')
 parser.add_argument('-saturate','--saturate', help='set a maximum number of particles in the system', required=False, type=int, default=0)
+parser.add_argument('-curvature','--curvature', help='activate the curvature orientation bias', required=False, action = 'store_true')
+parser.add_argument('-Fcurv','--Fcurv', help='magnitude of the curvature force', required=False, type=float, default=10.0)
 
 args = parser.parse_args()
 gpath = args.path
@@ -40,9 +42,14 @@ arrest = args.arrest
 Xbias = args.Xbias
 attraction = args.attraction
 saturate = int(args.saturate)
+curvature = args.curvature
+Fcurv = float(args.Fcurv)
 
 # Initialise numpy's RNG
 np.random.seed(seed)
+
+if not curvature:
+    Fcurv = 0.0
 
 poff = 1.0
 if arrest:
@@ -69,6 +76,7 @@ f.write("thyd [s]:\t\t%.1f\n"%(thyd))
 f.write("rnuc [fils/s]:\t\t%.1f\n"%(rnuc))
 f.write("Kbond [kT/sigma2]:\t%.1f\n"%(Kbond))
 f.write("Kbend [kT/sigma2]:\t%.1f\n"%(Kbend))
+f.write("Kobst [kT/sigma2]:\t%.1f\n"%(Kobst))
 f.write("tstep [s]:\t\t%.5f\n"%(tstep))
 f.write("runtime [s]:\t\t%.1f\n"%(runtime))
 f.write("frate [s]:\t\t%.1f\n"%(frate))
@@ -79,6 +87,7 @@ if attraction:
     f.write("Attraction:\t\tYes\n")
 else:
     f.write("Attraction:\t\tNo\n")
+f.write("Curvature F [kT/sigma]:\t%.1f\n"%(Fcurv))
 f.write("Saturation number:\t%d\n"%(saturate))
 if Xbias:
     f.write("Only X+:\t\tYes\n")
@@ -299,6 +308,7 @@ f.write("variable            run_time equal %.1f                            # si
 f.write("variable            frame_rate equal %.1f                          # dumping interval [seconds]\n"%(frate))
 f.write("variable            seed equal %d                                  # random number generator seed\n"%(seed))
 f.write("variable            maxatoms equal %d                              # maximum number of atoms allowed in the system\n"%(saturate))
+f.write("variable            fCurv equal %f                              # magnitude of the curvature force [kT/sigma]\n"%(Fcurv))
 f.write('''variable            condatoms equal "atoms >= v_maxatoms+2"
 variable            pon equal (1-v_condatoms)                     # growing reaction initiation probability (0 or 1)
 
@@ -407,6 +417,30 @@ variable            vSA atom (step-f_fSI)
 variable            vTailsTime atom v_vSA/v_thyd
 variable            vTailsE atom exp(-v_vTailsTime)
 variable            vTailsP atom 1.0-exp(-v_vTailsTime)
+
+compute             cFrag all fragment/atom single no
+compute             cMol all chunk/atom c_cFrag
+compute             cCMH HeadMons com/chunk cMol
+compute             cCMT TailMons com/chunk cMol
+compute             cFilH all chunk/spread/atom cMol c_cCMH[*]
+compute             cFilT all chunk/spread/atom cMol c_cCMT[*]
+variable            vdxHT atom c_cFilH[1]-c_cFilT[1]
+variable            vdyHT atom c_cFilH[2]-c_cFilT[2]
+variable            condghosts atom "type == 4"
+variable            vRHT atom sqrt(v_vdxHT*v_vdxHT+v_vdyHT*v_vdyHT)+v_condghosts
+variable            vcosHT atom v_vdxHT/v_vRHT
+variable            vsinHT atom v_vdyHT/v_vRHT
+variable            conddx0 atom "v_vdxHT == 0"
+variable            dxAbs atom abs(v_vdxHT)+v_conddx0
+variable            dxSign atom v_vdxHT/v_dxAbs
+
+variable            fxField atom v_fCurv*(1.0-v_vcosHT)*v_vsinHT*v_vsinHT*v_dxSign
+variable            fyField atom v_fCurv*(1.0-v_vcosHT)*v_vsinHT*-1.0*v_vcosHT*v_dxSign
+variable            mfxField atom -1.0*v_fxField
+variable            mfyField atom -1.0*v_fyField
+
+fix                 fcurvH HeadMons addforce v_fxField v_fyField 0
+fix                 fcurvT TailMons addforce v_mfxField v_mfyField 0
 
 fix                 fLang all langevin 1.0 1.0 1.0 ${seed}
 fix                 fNVE AllAtoms_REACT nve
