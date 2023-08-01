@@ -23,6 +23,7 @@ parser.add_argument('-attraction','--attraction', help='turn on interfilament at
 parser.add_argument('-saturate','--saturate', help='set a maximum number of particles in the system', required=False, type=int, default=0)
 parser.add_argument('-curvature','--curvature', help='activate the curvature orientation bias', required=False, action = 'store_true')
 parser.add_argument('-Fcurv','--Fcurv', help='magnitude of the curvature force', required=False, type=float, default=10.0)
+parser.add_argument('-Fswim','--Fswim', help='magnitude of the swimming force', required=False, type=float, default=0.0)
 parser.add_argument('-modulation','--modulation', help='activate the rates modulation', required=False, action = 'store_true')
 parser.add_argument('-profW','--profW', help='modulating profile width [sigma]', required=False, type=float, default=20.0)
 parser.add_argument('-modt','--modt', help='modulation time kick-in', required=False, type=float, default=0.0)
@@ -47,6 +48,7 @@ attraction = args.attraction
 saturate = int(args.saturate)
 curvature = args.curvature
 Fcurv = float(args.Fcurv)
+Fswim = float(args.Fswim)
 modulation = args.modulation
 profW = float(args.profW)
 modt = float(args.modt)
@@ -94,6 +96,7 @@ if attraction:
 else:
     f.write("Attraction:\t\tNo\n")
 f.write("Curvature F [kT/sigma]:\t%.1f\n"%(Fcurv))
+f.write("Swimming F [kT/sigma]:\t%.1f\n"%(Fswim))
 if modulation:
     f.write("Modulation of rates:\n")
     f.write("  Width [sigma]:\t%.1f\n"%(profW))
@@ -319,6 +322,7 @@ f.write("variable            frame_rate equal %.1f                          # du
 f.write("variable            seed equal %d                                  # random number generator seed\n"%(seed))
 f.write("variable            maxatoms equal %d                              # maximum number of atoms allowed in the system\n"%(saturate))
 f.write("variable            fCurv equal %f                              # magnitude of the curvature force [kT/sigma]\n"%(Fcurv))
+f.write("variable            fSwim equal %f                              # magnitude of the swimming force [kT/sigma]\n"%(Fswim))
 f.write('''variable            condatoms equal "atoms >= v_maxatoms+2"
 variable            pon equal (1-v_condatoms)                     # growing reaction initiation probability (0 or 1)
 
@@ -455,8 +459,13 @@ variable            fyField atom v_fCurv*(1.0-v_vcosHT)*v_vsinHT*-1.0*v_vcosHT*v
 variable            mfxField atom -1.0*v_fxField
 variable            mfyField atom -1.0*v_fyField
 
+variable            fSwimX atom v_fSwim*v_condatoms*v_vcosHT
+variable            fSwimY atom v_fSwim*v_condatoms*v_vsinHT
+
 fix                 fcurvH HeadMons addforce v_fxField v_fyField 0
 fix                 fcurvT TailMons addforce v_mfxField v_mfyField 0
+
+fix                 fswimH HeadMons addforce v_fSwimX v_fSwimY 0
 
 fix                 fLang all langevin 1.0 1.0 1.0 ${seed}
 fix                 fNVE AllAtoms_REACT nve
