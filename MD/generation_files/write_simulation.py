@@ -27,6 +27,7 @@ parser.add_argument('-Fswim','--Fswim', help='magnitude of the swimming force', 
 parser.add_argument('-modulation','--modulation', help='activate the rates modulation', required=False, action = 'store_true')
 parser.add_argument('-profW','--profW', help='modulating profile width [sigma]', required=False, type=float, default=20.0)
 parser.add_argument('-modt','--modt', help='modulation time kick-in', required=False, type=float, default=0.0)
+parser.add_argument('-arrtime','--arrtime', help='initial arrest time [seconds]', required=False, type=float, default=0.0)
 
 args = parser.parse_args()
 gpath = args.path
@@ -52,6 +53,7 @@ Fswim = float(args.Fswim)
 modulation = args.modulation
 profW = float(args.profW)
 modt = float(args.modt)
+arrtime = float(args.arrtime)
 
 # Initialise numpy's RNG
 np.random.seed(seed)
@@ -114,6 +116,7 @@ elif ICNfils > 1:
     f.write("IC:\t\t\tCIRCULAR OBSTACLE (N = %d)\n"%(ICNfils))
 elif ICNfils < 0:
     f.write("IC:\t\t\tLINEAR OBSTACLE (N = %d)\n"%(-ICNfils))
+f.write("Initial arrest [s]:\t%.1f\n"%(arrtime))
 f.close()
 
 if ICNfils == 1:
@@ -312,17 +315,19 @@ read_data           configuration.txt extra/bond/per/atom 5  extra/special/per/a
 f.write("variable            ron equal %.1f                                 # growth rate [monomers/s]\n"%(ron))
 f.write("variable            tauhyd equal %.1f                              # hydrolysis time [seconds]\n"%(thyd))
 f.write("variable            rnuc equal %.1f                                # nucleation rate [filaments/s]\n"%(rnuc))
-f.write("variable            poff equal %.1f                                # shrinking reaction initiation probability (0 or 1)\n"%(poff))
 f.write("variable            Kbond equal %.1f                               # bond constant [kT/sigma2]\n"%(Kbond))
 f.write("variable            Kbend equal %.1f                               # bend constant [kT/sigma2]\n"%(Kbend))
 f.write("variable            Kobst equal %.1f                               # bend constant [kT/sigma2]\n"%(Kobst))
 f.write("variable            tstep equal %f                                 # simulation timestep size [seconds]\n"%(tstep))
+f.write("variable            realtime equal step*${tstep}                   # simulation time in real units [seconds]\n")
 f.write("variable            run_time equal %.1f                            # simulation run time [seconds]\n"%(runtime))
 f.write("variable            frame_rate equal %.1f                          # dumping interval [seconds]\n"%(frate))
 f.write("variable            seed equal %d                                  # random number generator seed\n"%(seed))
 f.write("variable            maxatoms equal %d                              # maximum number of atoms allowed in the system\n"%(saturate))
-f.write("variable            fCurv equal %f                              # magnitude of the curvature force [kT/sigma]\n"%(Fcurv))
-f.write("variable            fSwim equal %f                              # magnitude of the swimming force [kT/sigma]\n"%(Fswim))
+f.write("variable            fCurv equal %f                                 # magnitude of the curvature force [kT/sigma]\n"%(Fcurv))
+f.write("variable            fSwim equal %f                                 # magnitude of the swimming force [kT/sigma]\n"%(Fswim))
+f.write('variable            condarr equal "v_realtime >= %.1f"             # arrest for some time no matter what\n'%(arrtime))
+f.write('variable            poff equal "%.1f*v_condarr"                    # shrinking reaction initiation probability (0 or 1)\n'%(poff))
 f.write('''variable            condatoms equal "atoms >= v_maxatoms+2"
 variable            pon equal (1-v_condatoms)                     # growing reaction initiation probability (0 or 1)
 
@@ -406,10 +411,10 @@ else:
 f.write('''                react DimerOn all ${rstep} 0.900000 1.100000 mPreDimerOn mPostDimerOn Reactions/map_DimerOn.txt prob v_pon ${seed} stabilize_steps ${stab_steps} modify_create fit 1 modify_create overlap 0.9         &
                 react TrimerOn all ${rstep} 0.900000 1.100000 mPreTrimerOn mPostTrimerOn Reactions/map_TrimerOn.txt prob v_pon ${seed} stabilize_steps ${stab_steps} modify_create fit 1 modify_create overlap 0.9         &
                 react OligomerOn all ${rstep} 0.900000 1.100000 mPreOligomerOn mPostOligomerOn Reactions/map_OligomerOn.txt prob v_pon ${seed} stabilize_steps ${stab_steps} modify_create fit 1 modify_create overlap 0.9         &
-                react OligomerOff all ${rstep} 0.900000 1.100000 mPreOligomerOff mPostOligomerOff Reactions/map_OligomerOff.txt prob ${poff} ${seed} stabilize_steps ${stab_steps}         &
-                react QuartomerOff all ${rstep} 0.900000 1.100000 mPreQuartomerOff mPostQuartomerOff Reactions/map_QuartomerOff.txt prob ${poff} ${seed} stabilize_steps ${stab_steps}         &
-                react TrimerOff all ${rstep} 0.900000 1.100000 mPreTrimerOff mPostTrimerOff Reactions/map_TrimerOff.txt prob ${poff} ${seed} stabilize_steps ${stab_steps}         &
-                react DimerOff all ${rstep} 0.900000 1.100000 mPreDimerOff mPostDimerOff Reactions/map_DimerOff.txt prob ${poff} ${seed} stabilize_steps ${stab_steps}
+                react OligomerOff all ${rstep} 0.900000 1.100000 mPreOligomerOff mPostOligomerOff Reactions/map_OligomerOff.txt prob v_poff ${seed} stabilize_steps ${stab_steps}         &
+                react QuartomerOff all ${rstep} 0.900000 1.100000 mPreQuartomerOff mPostQuartomerOff Reactions/map_QuartomerOff.txt prob v_poff ${seed} stabilize_steps ${stab_steps}         &
+                react TrimerOff all ${rstep} 0.900000 1.100000 mPreTrimerOff mPostTrimerOff Reactions/map_TrimerOff.txt prob v_poff ${seed} stabilize_steps ${stab_steps}         &
+                react DimerOff all ${rstep} 0.900000 1.100000 mPreDimerOff mPostDimerOff Reactions/map_DimerOff.txt prob v_poff ${seed} stabilize_steps ${stab_steps}
 
 variable            vMaskHeadType atom "type==3"
 group               HeadMons dynamic all var vMaskHeadType every 1
@@ -469,8 +474,6 @@ fix                 fswimH HeadMons addforce v_fSwimX v_fSwimY 0
 
 fix                 fLang all langevin 1.0 1.0 1.0 ${seed}
 fix                 fNVE AllAtoms_REACT nve
-
-variable            realtime equal step*${tstep}
 
 dump                1 all custom ${dump_time} output.xyz id mol type x y z fx fy fz f_fSI v_vTailsTime
 dump_modify         1 format line "%d %d %d %.2f %.2f %.2f %.2f %.2f %.2f %.1f %.1f"
