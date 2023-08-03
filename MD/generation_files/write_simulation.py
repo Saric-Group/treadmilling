@@ -27,6 +27,7 @@ parser.add_argument('-Fswim','--Fswim', help='magnitude of the swimming force', 
 parser.add_argument('-modulation','--modulation', help='activate the rates modulation', required=False, action = 'store_true')
 parser.add_argument('-profW','--profW', help='modulating profile width [sigma]', required=False, type=float, default=20.0)
 parser.add_argument('-modt','--modt', help='modulation time kick-in', required=False, type=float, default=0.0)
+parser.add_argument('-modratio','--modratio', help='ratio between on/nuc rates before and after (initial/final)', required=False, type=float, default=0.5)
 parser.add_argument('-arrtime','--arrtime', help='initial arrest time [seconds]', required=False, type=float, default=0.0)
 
 args = parser.parse_args()
@@ -53,6 +54,7 @@ Fswim = float(args.Fswim)
 modulation = args.modulation
 profW = float(args.profW)
 modt = float(args.modt)
+modratio = float(args.modratio)
 arrtime = float(args.arrtime)
 
 # Initialise numpy's RNG
@@ -103,6 +105,9 @@ if modulation:
     f.write("Modulation of rates:\n")
     f.write("  Width [sigma]:\t%.1f\n"%(profW))
     f.write("  Time [s]:\t\t%.1f\n"%(modt))
+    f.write("  Initial/Final:\t%.4f\n"%(modratio))
+else:
+    f.write("No modulation of rates\n")
 f.write("Saturation number:\t%d\n"%(saturate))
 if Xbias:
     f.write("Only X+:\t\tYes\n")
@@ -321,6 +326,10 @@ f.write("variable            Kobst equal %.1f                               # be
 f.write("variable            tstep equal %f                                 # simulation timestep size [seconds]\n"%(tstep))
 f.write("variable            realtime equal step*${tstep}                   # simulation time in real units [seconds]\n")
 f.write("variable            run_time equal %.1f                            # simulation run time [seconds]\n"%(runtime))
+if modulation:
+    f.write("variable            modtime equal %.1f                         # modulation time [seconds]\n"%(modt))
+    f.write('variable            condmod equal "v_realtime > v_modtime"\n')
+    f.write("variable            ratesratio equal %f\n"%(modratio))
 f.write("variable            frame_rate equal %.1f                          # dumping interval [seconds]\n"%(frate))
 f.write("variable            seed equal %d                                  # random number generator seed\n"%(seed))
 f.write("variable            maxatoms equal %d                              # maximum number of atoms allowed in the system\n"%(saturate))
@@ -333,11 +342,14 @@ variable            pon equal (1-v_condatoms)                     # growing reac
 
 ''')
 if modulation:
-    f.write("variable            kon atom ${ron}/10.0*exp(-y*y/%f)                          # growth probability\n"%(profW*profW))
+    f.write("variable            kon atom v_ron/10.0*v_ratesratio*(1-v_condmod)+v_ron/10.0*exp(-y*y/%f)*v_condmod                          # growth probability\n"%(profW*profW))
+    f.write("variable            knuc atom v_rnuc/10.0*v_ratesratio*(1-v_condmod)+v_rnuc/10.0*v_condmod                        # nucleation probability\n")
+    f.write("variable            pnuc0 equal v_pon*(1-v_condmod)\n")
+    f.write("variable            pnuc1 equal v_pon*v_condmod\n")
 else:
     f.write("variable            kon atom ${ron}/10.0                          # growth probability\n")
-f.write('''variable            knuc atom ${rnuc}/10.0                        # nucleation probability
-variable            thyd equal ${tauhyd}/${tstep}                 # hydrolysis time [simulation steps]
+    f.write("variable            knuc atom ${rnuc}/10.0                        # nucleation probability\n")
+f.write('''variable            thyd equal ${tauhyd}/${tstep}                 # hydrolysis time [simulation steps]
 variable            rstep equal 0.1/${tstep}                      # reaction interval [simulation steps]
 variable            run_steps equal ${run_time}/${tstep}          # simulation run time [simulation steps]
 variable            dump_time equal ${frame_rate}/${tstep}        # dumping interval [simulation steps]
@@ -405,7 +417,8 @@ fix                 freact all bond/react  stabilization yes AllAtoms 0.1  reset
 if Xbias:
     f.write("react Nucleation all ${rstep} 0.900000 1.100000 mPreNucleation mPostNucleation Reactions/map_Nucleation.txt prob v_pon ${seed} stabilize_steps ${stab_steps} modify_create overlap 0.9 modify_create nuc xor         &\n")
 elif modulation:
-    f.write("react Nucleation all ${rstep} 0.900000 1.100000 mPreNucleation mPostNucleation Reactions/map_Nucleation.txt prob v_pon ${seed} stabilize_steps ${stab_steps} modify_create overlap 0.9 modify_create nuc mod %f         &\n"%(profW))
+    f.write("react Nucleation0 all ${rstep} 0.900000 1.100000 mPreNucleation mPostNucleation Reactions/map_Nucleation.txt prob v_pnuc0 ${seed} stabilize_steps ${stab_steps} modify_create overlap 0.9 modify_create nuc yes         &\n")
+    f.write("react Nucleation1 all ${rstep} 0.900000 1.100000 mPreNucleation mPostNucleation Reactions/map_Nucleation.txt prob v_pnuc1 ${seed} stabilize_steps ${stab_steps} modify_create overlap 0.9 modify_create nuc mod %f         &\n"%(profW))
 else:
     f.write("react Nucleation all ${rstep} 0.900000 1.100000 mPreNucleation mPostNucleation Reactions/map_Nucleation.txt prob v_pon ${seed} stabilize_steps ${stab_steps} modify_create overlap 0.9 modify_create nuc yes         &\n")
 f.write('''                react DimerOn all ${rstep} 0.900000 1.100000 mPreDimerOn mPostDimerOn Reactions/map_DimerOn.txt prob v_pon ${seed} stabilize_steps ${stab_steps} modify_create fit 1 modify_create overlap 0.9         &
