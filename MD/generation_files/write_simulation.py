@@ -485,7 +485,7 @@ fix                 fcurvT TailMons addforce v_mfxField v_mfyField 0
 
 fix                 fswimH HeadMons addforce v_fSwimX v_fSwimY 0
 
-fix                 fLang all langevin 1.0 1.0 1.0 ${seed}
+fix                 fLang all langevin 1.0 1.0 0.01 ${seed}
 fix                 fNVE AllAtoms_REACT nve
 
 dump                1 all custom ${dump_time} output.xyz id mol type x y z fx fy fz f_fSI v_vTailsTime
