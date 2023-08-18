@@ -28,7 +28,7 @@ parser.add_argument('-modulation','--modulation', help='activate the rates modul
 parser.add_argument('-profW','--profW', help='modulating profile width [sigma]', required=False, type=float, default=20.0)
 parser.add_argument('-modt','--modt', help='modulation time kick-in', required=False, type=float, default=0.0)
 parser.add_argument('-modratio','--modratio', help='ratio between on/nuc rates before and after (initial/final)', required=False, type=float, default=0.5)
-parser.add_argument('-arrtime','--arrtime', help='initial arrest time [seconds]', required=False, type=float, default=0.0)
+parser.add_argument('-arrtime','--arrtime', help='arrest toggle time [seconds]', required=False, type=float, default=0.0)
 
 args = parser.parse_args()
 gpath = args.path
@@ -64,8 +64,8 @@ if not curvature:
     Fcurv = 0.0
 
 poff = 1.0
-if arrest:
-    poff = 0.0
+# if arrest:
+#     poff = 0.0
 
 if saturate == 0:
     saturate = L*L+10
@@ -94,7 +94,7 @@ f.write("runtime [s]:\t\t%.1f\n"%(runtime))
 f.write("frate [s]:\t\t%.1f\n"%(frate))
 f.write("seed:\t\t\t%d\n"%(seed))
 f.write("box size:\t\t%.1f\n"%(L))
-f.write("poff:\t\t\t%.1f\n"%(poff))
+# f.write("poff:\t\t\t%.1f\n"%(poff))
 if attraction:
     f.write("Attraction:\t\tYes\n")
 else:
@@ -121,7 +121,10 @@ elif ICNfils > 1:
     f.write("IC:\t\t\tCIRCULAR OBSTACLE (N = %d)\n"%(ICNfils))
 elif ICNfils < 0:
     f.write("IC:\t\t\tLINEAR OBSTACLE (N = %d)\n"%(-ICNfils))
-f.write("Initial arrest [s]:\t%.1f\n"%(arrtime))
+if arrest:
+    f.write("Arrest after [s]:\t%.1f\n"%(arrtime))
+else:
+    f.write("Arrest for [s]:\t%.1f\n"%(arrtime))
 f.close()
 
 if ICNfils == 1:
@@ -335,7 +338,10 @@ f.write("variable            seed equal %d                                  # ra
 f.write("variable            maxatoms equal %d                              # maximum number of atoms allowed in the system\n"%(saturate))
 f.write("variable            fCurv equal %f                                 # magnitude of the curvature force [kT/sigma]\n"%(Fcurv))
 f.write("variable            fSwim equal %f                                 # magnitude of the swimming force [kT/sigma]\n"%(Fswim))
-f.write('variable            condarr equal "v_realtime >= %.1f"             # arrest for some time no matter what\n'%(arrtime))
+if arrest:
+    f.write('variable            condarr equal "v_realtime < %.1f"             # arrest after some initial time\n'%(arrtime))
+else:
+    f.write('variable            condarr equal "v_realtime >= %.1f"             # arrest for some initial time\n'%(arrtime))
 f.write('variable            poff equal "%.1f*v_condarr"                    # shrinking reaction initiation probability (0 or 1)\n'%(poff))
 f.write('''variable            condatoms equal "atoms >= v_maxatoms+2"
 variable            pon equal (1-v_condatoms)                     # growing reaction initiation probability (0 or 1)
