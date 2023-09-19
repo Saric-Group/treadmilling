@@ -29,6 +29,7 @@ parser.add_argument('-profW','--profW', help='modulating profile width [sigma]',
 parser.add_argument('-modt','--modt', help='modulation time kick-in', required=False, type=float, default=0.0)
 parser.add_argument('-modratio','--modratio', help='ratio between on/nuc rates before and after (initial/final)', required=False, type=float, default=0.5)
 parser.add_argument('-arrtime','--arrtime', help='arrest toggle time [seconds]', required=False, type=float, default=0.0)
+parser.add_argument('-constrain500','--constrain500', help='constrain FtsZ to 500 nm around midcell', required=False, action = 'store_true')
 
 args = parser.parse_args()
 gpath = args.path
@@ -56,6 +57,7 @@ profW = float(args.profW)
 modt = float(args.modt)
 modratio = float(args.modratio)
 arrtime = float(args.arrtime)
+constrain500 = args.constrain500
 
 # Initialise numpy's RNG
 np.random.seed(seed)
@@ -348,7 +350,10 @@ variable            pon equal (1-v_condatoms)                     # growing reac
 
 ''')
 if modulation:
-    f.write("variable            kon atom v_ron/10.0*v_ratesratio*(1-v_condmod)+v_ron/10.0*exp(-y*y/%f)*v_condmod                          # growth probability\n"%(profW*profW))
+    if constrain500:
+        f.write("variable            kon atom v_ron/10.0*exp(-y*y/%f)*v_ratesratio*(1-v_condmod)+v_ron/10.0*exp(-y*y/%f)*v_condmod                          # growth probability\n"%(50*50,profW*profW))
+    else:
+        f.write("variable            kon atom v_ron/10.0*v_ratesratio*(1-v_condmod)+v_ron/10.0*exp(-y*y/%f)*v_condmod                          # growth probability\n"%(profW*profW))
     f.write("variable            knuc atom v_rnuc/10.0*v_ratesratio*(1-v_condmod)+v_rnuc/10.0*v_condmod                        # nucleation probability\n")
     f.write("variable            pnuc0 equal v_pon*(1-v_condmod)\n")
     f.write("variable            pnuc1 equal v_pon*v_condmod\n")
@@ -423,8 +428,11 @@ fix                 freact all bond/react  stabilization yes AllAtoms 0.1  reset
 if Xbias:
     f.write("react Nucleation all ${rstep} 0.900000 1.100000 mPreNucleation mPostNucleation Reactions/map_Nucleation.txt prob v_pon ${seed} stabilize_steps ${stab_steps} modify_create overlap 0.9 modify_create nuc xor         &\n")
 elif modulation:
-    f.write("react Nucleation0 all ${rstep} 0.900000 1.100000 mPreNucleation mPostNucleation Reactions/map_Nucleation.txt prob v_pnuc0 ${seed} stabilize_steps ${stab_steps} modify_create overlap 0.9 modify_create nuc yes         &\n")
-    f.write("react Nucleation1 all ${rstep} 0.900000 1.100000 mPreNucleation mPostNucleation Reactions/map_Nucleation.txt prob v_pnuc1 ${seed} stabilize_steps ${stab_steps} modify_create overlap 0.9 modify_create nuc mod %f         &\n"%(profW))
+    if constrain500:
+        f.write("react Nucleation0 all ${rstep} 0.900000 1.100000 mPreNucleation mPostNucleation Reactions/map_Nucleation.txt prob v_pnuc0 ${seed} stabilize_steps ${stab_steps} modify_create overlap 0.9 modify_create nuc mod %f         &\n"%(50.0))
+    else:
+        f.write("react Nucleation0 all ${rstep} 0.900000 1.100000 mPreNucleation mPostNucleation Reactions/map_Nucleation.txt prob v_pnuc0 ${seed} stabilize_steps ${stab_steps} modify_create overlap 0.9 modify_create nuc yes         &\n")
+    f.write("                react Nucleation1 all ${rstep} 0.900000 1.100000 mPreNucleation mPostNucleation Reactions/map_Nucleation.txt prob v_pnuc1 ${seed} stabilize_steps ${stab_steps} modify_create overlap 0.9 modify_create nuc mod %f         &\n"%(profW))
 else:
     f.write("react Nucleation all ${rstep} 0.900000 1.100000 mPreNucleation mPostNucleation Reactions/map_Nucleation.txt prob v_pon ${seed} stabilize_steps ${stab_steps} modify_create overlap 0.9 modify_create nuc yes         &\n")
 f.write('''                react DimerOn all ${rstep} 0.900000 1.100000 mPreDimerOn mPostDimerOn Reactions/map_DimerOn.txt prob v_pon ${seed} stabilize_steps ${stab_steps} modify_create fit 1 modify_create overlap 0.9         &
