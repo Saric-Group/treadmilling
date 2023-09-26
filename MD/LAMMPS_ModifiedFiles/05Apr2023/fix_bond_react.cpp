@@ -3633,19 +3633,32 @@ int FixBondReact::insert_atoms(tagint **my_mega_glove, int iupdate)
         // Added vector modify_create_nucrand to store random nucleation flags for each reaction - Chris 20/02/2023
         // If modify_create_nucrand selected then redefine xfrozen (actual position of template nucleator in the reaction) to a random position within the box
         // Chris - 20/02/2023
+        // if (modify_create_nucrand[rxnID] == 1) {
+        //   for (int k = 0; k < 3; k++) {
+        //     if (dimension == 2 && k == 2) {
+        //       xfrozen[fit_incr][k] = 0.0;
+        //     }
+        //     else {
+        //       if (fit_incr == 0) {                          // 1st template particle, define random position :D Use individual reaction random number generator random[rxnID]
+        //         xfrozen[fit_incr][k] = (domain->boxhi[k] - domain->boxlo[k]) * (random[rxnID]->uniform()-0.5);
+        //       }
+        //       else {                                        // rest of the template particles, define their position from the relative position to the OG position of the first one but now from the new position of the first one -  Chris 20/02/2023
+        //         xfrozen[fit_incr][k] = xfrozen[0][k] + (oxfrozen[fit_incr][k] - oxfrozen[0][k]);
+        //       }
+        //     }
+        //   }
+        // }
         if (modify_create_nucrand[rxnID] == 1) {
-          for (int k = 0; k < 3; k++) {
-            if (dimension == 2 && k == 2) {
-              xfrozen[fit_incr][k] = 0.0;
-            }
-            else {
-              if (fit_incr == 0) {                          // 1st template particle, define random position :D Use individual reaction random number generator random[rxnID]
-                xfrozen[fit_incr][k] = (domain->boxhi[k] - domain->boxlo[k]) * (random[rxnID]->uniform()-0.5);
-              }
-              else {                                        // rest of the template particles, define their position from the relative position to the OG position of the first one but now from the new position of the first one -  Chris 20/02/2023
-                xfrozen[fit_incr][k] = xfrozen[0][k] + (oxfrozen[fit_incr][k] - oxfrozen[0][k]);
-              }
-            }
+          double ang = 2*M_PI*random[rxnID]->uniform(); // random angle (from individual reaction RNG) - Chris 26/09/2023
+          if (fit_incr == 0) {                          // 1st template particle, define random position :D Use individual reaction random number generator random[rxnID]
+            xfrozen[fit_incr][0] = (domain->boxhi[0] - domain->boxlo[0]) * (random[rxnID]->uniform()-0.5);
+            xfrozen[fit_incr][1] = (domain->boxhi[1] - domain->boxlo[1]) * (random[rxnID]->uniform()-0.5);
+            xfrozen[fit_incr][2] = 0.0;
+          }
+          else {
+            xfrozen[fit_incr][0] = xfrozen[0][0] + (float)fit_incr*cos(ang);
+            xfrozen[fit_incr][1] = xfrozen[0][1] + (float)fit_incr*sin(ang);
+            xfrozen[fit_incr][2] = 0.0;
           }
         }
         else if (modify_create_nucrand[rxnID] == 0) { // only positive X orientation! -- Chris 27/07/2023
