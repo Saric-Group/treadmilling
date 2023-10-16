@@ -3819,37 +3819,27 @@ int FixBondReact::insert_atoms(tagint **my_update_mega_glove, int iupdate)
                          comm->me);
           continue;
         }
-        // printf("      reaction %d: nucleate randomly? (1 = yes, -1 = no) -  %d\n", rxnID, modify_create_nucrand[rxnID]);
-        // printf("          fit_incr = %d\n", fit_incr);
         iatom = atom->map(my_update_mega_glove[ipre+1][iupdate]);
         molinit = atom->molecule[iatom];                        // Molecule ID of the initiator particles, added to create particles with the right molecule IDs -- Chris 22/02/2023
-        // printf("            before closest image atom ID = %d - position = [%.2f, %.2f, %.2f]\n", atom->tag[iatom], atom->x[iatom][0], atom->x[iatom][1], atom->x[iatom][2]);
-        // if (iref == -1) iref = iatom;
-        // iatom = domain->closest_image(iref,iatom);
-        // printf("            after closest image atom ID = %d - position = [%.2f, %.2f, %.2f]\n", atom->tag[iatom], atom->x[iatom][0], atom->x[iatom][1], atom->x[iatom][2]);
         for (int k = 0; k < 3; k++) {
           xfrozen[fit_incr][k] = x[iatom][k];
           xmobile[fit_incr][k] = twomol->x[j][k];
-          // printf("Defining old positions as well...\n");
           oxfrozen[fit_incr][k] = x[iatom][k];  // OG coordinates for the "frozen" target molecule (for access after random redefinition if modify_create_nucrand is used) -- Chris 20/02/2023
-          // printf("Old positions defined\n");
         }
         // Added vector modify_create_nucrand to store random nucleation flags for each reaction - Chris 20/02/2023
         // If modify_create_nucrand selected then redefine xfrozen (actual position of template nucleator in the reaction) to a random position within the box
         // Chris - 20/02/2023
         if (modify_create_nucrand[rxnID] == 1) {
-          for (int k = 0; k < 3; k++) {
-            if (dimension == 2 && k == 2) {
-              xfrozen[fit_incr][k] = 0.0;
-            }
-            else {
-              if (fit_incr == 0) {                          // 1st template particle, define random position :D Use individual reaction random number generator random[rxnID]
-                xfrozen[fit_incr][k] = (domain->boxhi[k] - domain->boxlo[k]) * (random[rxnID]->uniform()-0.5);
-              }
-              else {                                        // rest of the template particles, define their position from the relative position to the OG position of the first one but now from the new position of the first one -  Chris 20/02/2023
-                xfrozen[fit_incr][k] = xfrozen[0][k] + (oxfrozen[fit_incr][k] - oxfrozen[0][k]);
-              }
-            }
+          double ang = 2*M_PI*random[rxnID]->uniform(); // random angle (from individual reaction RNG) - Chris 26/09/2023
+          if (fit_incr == 0) {                          // 1st template particle, define random position :D Use individual reaction random number generator random[rxnID]
+            xfrozen[fit_incr][0] = (domain->boxhi[0] - domain->boxlo[0]) * (random[rxnID]->uniform()-0.5);
+            xfrozen[fit_incr][1] = (domain->boxhi[1] - domain->boxlo[1]) * (random[rxnID]->uniform()-0.5);
+            xfrozen[fit_incr][2] = 0.0;
+          }
+          else {
+            xfrozen[fit_incr][0] = xfrozen[0][0] + (float)fit_incr*cos(ang);
+            xfrozen[fit_incr][1] = xfrozen[0][1] + (float)fit_incr*sin(ang);
+            xfrozen[fit_incr][2] = 0.0;
           }
         }
         else if (modify_create_nucrand[rxnID] == 0) { // only positive X orientation! -- Chris 27/07/2023
@@ -3869,22 +3859,20 @@ int FixBondReact::insert_atoms(tagint **my_update_mega_glove, int iupdate)
             xfrozen[fit_incr][2] = xfrozen[0][2];
           }
         }
-        if (modify_create_nucrand[rxnID] > 1) { // Sample normal distribution in Y (with standard deviation modify_create_nucrand[rxnID]) for new position -- Chris 28/07/2023
-          if (fit_incr == 0) { // random position
+        else if (modify_create_nucrand[rxnID] > 1) { // Sample normal distribution in Y (with standard deviation modify_create_nucrand[rxnID]) for new position -- Chris 28/07/2023
+          double ang = 2*M_PI*random[rxnID]->uniform(); // random angle (from individual reaction RNG) - Chris 26/09/2023
+          if (fit_incr == 0) {                          // 1st template particle, define random position :D Use individual reaction random number generator random[rxnID] - Sample normal distribution in Y (with standard deviation modify_create_nucrand[rxnID]) for new position -- Chris 28/07/2023
             xfrozen[fit_incr][0] = (domain->boxhi[0] - domain->boxlo[0]) * (random[rxnID]->uniform()-0.5);
             // Two RN -> 1 Normal-distributed number
             double u1 = random[rxnID]->uniform();
             double u2 = random[rxnID]->uniform();
             xfrozen[fit_incr][1] = sqrt(-2*log(u1))*cos(2*M_PI*u2)*modify_create_nucrand[rxnID]+0.0;
             xfrozen[fit_incr][2] = 0.0;
-            if (dimension == 3) {
-              xfrozen[fit_incr][2] = (domain->boxhi[2] - domain->boxlo[2]) * (random[rxnID]->uniform()-0.5);
-            }
           }
-          else { // positive in X only
-            for (int k = 0; k < 3; k++) {
-              xfrozen[fit_incr][k] = xfrozen[0][k] + (oxfrozen[fit_incr][k] - oxfrozen[0][k]);
-            }
+          else {
+            xfrozen[fit_incr][0] = xfrozen[0][0] + (float)fit_incr*cos(ang);
+            xfrozen[fit_incr][1] = xfrozen[0][1] + (float)fit_incr*sin(ang);
+            xfrozen[fit_incr][2] = 0.0;
           }
         }
         // New boundary implementation, without using the closest_image() function from domain.cpp, which sometimes returns the wrong ID, likely due to the resetting of molecules IDs as new particles are created (part of the fix_bond_react.cpp)
