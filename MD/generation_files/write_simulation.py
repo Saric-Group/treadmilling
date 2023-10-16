@@ -9,7 +9,7 @@ parser.add_argument('-ron', '--ron', help='imposed growth rate [monomers/second]
 parser.add_argument('-thyd', '--thyd', help='hydrolysis time [seconds]', required=False, type=float, default=5.0)
 parser.add_argument('-rnuc', '--rnuc', help='imposed nucleation rate [filaments/second]', required=False, type=float, default=1.0)
 parser.add_argument('-Kbond', '--Kbond', help='bond constant [kT/sigma2]', required=False, type=float, default=1000.0)
-parser.add_argument('-Kbend', '--Kbend', help='bending constant [kT/sigma2]', required=False, type=float, default=800.0)
+parser.add_argument('-Kbend', '--Kbend', help='bending constant [kT/sigma2]', required=False, type=float, default=1000.0)
 parser.add_argument('-Kobst', '--Kobst', help='bending constant of the obstacles [kT/sigma2]', required=False, type=float, default=100.0)
 parser.add_argument('-tstep', '--tstep', help='simulation timestep [simulation time]', required=False, type=float, default=0.001)
 parser.add_argument('-nts', '--nts', help='simulation time to real time mapping [tau/s]', required=False, type=float, default=1.0)
@@ -478,7 +478,9 @@ variable            vTailsTime atom v_vSA/v_thyd
 variable            vTailsE atom exp(-v_vTailsTime)
 variable            vTailsP atom 1.0-exp(-v_vTailsTime)
 
-compute             cFrag all fragment/atom single no
+''')
+if Fcurv > 0.0 or Fswim > 0.0:
+    f.write('''compute             cFrag all fragment/atom single no
 compute             cMol all chunk/atom c_cFrag
 compute             cCMH HeadMons com/chunk cMol
 compute             cCMT TailMons com/chunk cMol
@@ -507,7 +509,9 @@ fix                 fcurvT TailMons addforce v_mfxField v_mfyField 0
 
 fix                 fswimH HeadMons addforce v_fSwimX v_fSwimY 0
 
-fix                 fLang all langevin 1.0 1.0 ${Tdamp} ${seed}
+''')
+
+f.write('''fix                 fLang all langevin 1.0 1.0 ${Tdamp} ${seed}
 fix                 fNVE AllAtoms_REACT nve
 
 dump                1 all custom ${dump_time} output.xyz id mol type x y z fx fy fz
