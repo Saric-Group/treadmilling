@@ -11,8 +11,10 @@ parser.add_argument('-rnuc', '--rnuc', help='imposed nucleation rate [filaments/
 parser.add_argument('-Kbond', '--Kbond', help='bond constant [kT/sigma2]', required=False, type=float, default=1000.0)
 parser.add_argument('-Kbend', '--Kbend', help='bending constant [kT/sigma2]', required=False, type=float, default=800.0)
 parser.add_argument('-Kobst', '--Kobst', help='bending constant of the obstacles [kT/sigma2]', required=False, type=float, default=100.0)
-parser.add_argument('-tstep', '--tstep', help='simulation timestep [seconds]', required=False, type=float, default=0.001)
-parser.add_argument('-runtime', '--runtime', help='simulation run time [seconds]', required=False, type=float, default=600.0)
+parser.add_argument('-tstep', '--tstep', help='simulation timestep [simulation time]', required=False, type=float, default=0.001)
+parser.add_argument('-nts', '--nts', help='simulation time to real time mapping [tau/s]', required=False, type=float, default=1.0)
+parser.add_argument('-damp', '--damp', help='damping time (Langevin thermostat) [tau]', required=False, type=float, default=1.0)
+parser.add_argument('-runtime', '--runtime', help='simulation run time [seconds]', required=False, type=float, default=1200.0)
 parser.add_argument('-frate', '--frate', help='frame rate [seconds]', required=False, type=float, default=1.0)
 parser.add_argument('-sd','--seed', help='random number generator seed', required=False, type=int, default=1234)
 parser.add_argument('-L','--L', help='box size [sigma]', required=False, type=float, default=200)
@@ -40,6 +42,8 @@ Kbond = float(args.Kbond)
 Kbend = float(args.Kbend)
 Kobst = float(args.Kobst)
 tstep = float(args.tstep)
+nts = float(args.nts)
+damp = float(args.damp)
 runtime = float(args.runtime)
 frate = float(args.frate)
 seed = int(args.seed)
@@ -92,11 +96,12 @@ f.write("Kbond [kT/sigma2]:\t%.1f\n"%(Kbond))
 f.write("Kbend [kT/sigma2]:\t%.1f\n"%(Kbend))
 f.write("Kobst [kT/sigma2]:\t%.1f\n"%(Kobst))
 f.write("tstep [s]:\t\t%.5f\n"%(tstep))
+f.write("tdamp [s]:\t\t%.5f\n"%(tdamp))
+f.write("mapping [tau/s]:\t%.5f\n"%(nts))
 f.write("runtime [s]:\t\t%.1f\n"%(runtime))
 f.write("frate [s]:\t\t%.1f\n"%(frate))
 f.write("seed:\t\t\t%d\n"%(seed))
 f.write("box size:\t\t%.1f\n"%(L))
-# f.write("poff:\t\t\t%.1f\n"%(poff))
 if attraction:
     f.write("Attraction:\t\tYes\n")
 else:
@@ -328,8 +333,10 @@ f.write("variable            rnuc equal %.1f                                # nu
 f.write("variable            Kbond equal %.1f                               # bond constant [kT/sigma2]\n"%(Kbond))
 f.write("variable            Kbend equal %.1f                               # bend constant [kT/sigma2]\n"%(Kbend))
 f.write("variable            Kobst equal %.1f                               # bend constant [kT/sigma2]\n"%(Kobst))
+f.write("variable            Tdamp equal %f                                 # Langevin thermostat damping time [tau]\n"%(damp))
 f.write("variable            tstep equal %f                                 # simulation timestep size [seconds]\n"%(tstep))
-f.write("variable            realtime equal step*${tstep}                   # simulation time in real units [seconds]\n")
+f.write("variable            ntausec equal %f                               # simulation time to real time mapping [tau/second]\n"%(nts))
+f.write("variable            tstepsecs equal ${tstep}/${ntausec}            # simulation timestep size [seconds]\n")
 f.write("variable            run_time equal %.1f                            # simulation run time [seconds]\n"%(runtime))
 if modulation:
     f.write("variable            modtime equal %.1f                         # modulation time [seconds]\n"%(modt))
@@ -360,10 +367,11 @@ if modulation:
 else:
     f.write("variable            kon atom ${ron}/10.0                          # growth probability\n")
     f.write("variable            knuc atom ${rnuc}/10.0                        # nucleation probability\n")
-f.write('''variable            thyd equal ${tauhyd}/${tstep}                 # hydrolysis time [simulation steps]
-variable            rstep equal 0.1/${tstep}                      # reaction interval [simulation steps]
-variable            run_steps equal ${run_time}/${tstep}          # simulation run time [simulation steps]
-variable            dump_time equal ${frame_rate}/${tstep}        # dumping interval [simulation steps]
+f.write('''variable            thyd equal ${tauhyd}/${tstepsecs}             # hydrolysis time [simulation steps]
+variable            rstep equal 0.1/${tstepsecs}                  # reaction interval [simulation steps]
+variable            run_steps equal ${run_time}/${tstepsecs}      # simulation run time [simulation steps]
+variable            dump_time equal ${frame_rate}/${tstepsecs}    # dumping interval [simulation steps]
+variable            realtime equal step*${tstepsecs}
 
 variable            stab_steps equal 1
 
@@ -499,11 +507,11 @@ fix                 fcurvT TailMons addforce v_mfxField v_mfyField 0
 
 fix                 fswimH HeadMons addforce v_fSwimX v_fSwimY 0
 
-fix                 fLang all langevin 1.0 1.0 0.05 ${seed}
+fix                 fLang all langevin 1.0 1.0 ${Tdamp} ${seed}
 fix                 fNVE AllAtoms_REACT nve
 
-dump                1 all custom ${dump_time} output.xyz id mol type x y z fx fy fz f_fSI v_vTailsTime
-dump_modify         1 format line "%d %d %d %.2f %.2f %.2f %.2f %.2f %.2f %.1f %.1f"
+dump                1 all custom ${dump_time} output.xyz id mol type x y z fx fy fz
+dump_modify         1 format line "%d %d %d %.2f %.2f %.2f %.2f %.2f %.2f"
 
 thermo              ${dump_time}
 compute_modify      thermo_temp dynamic/dof yes
