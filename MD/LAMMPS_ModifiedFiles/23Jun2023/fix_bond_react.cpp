@@ -4062,7 +4062,12 @@ int FixBondReact::insert_atoms(tagint **my_update_mega_glove, int iupdate)
         double vtnorm = sqrt( ( 12 * t * force->boltz ) / ( atom->mass[twomol->type[m]] * force->mvv2e ) );
         v[n][0] = vtnorm*(0.5-(random[rxnID]->uniform()));     // Chris 21/07/2023 added "0.5-"
         v[n][1] = vtnorm*(0.5-(random[rxnID]->uniform()));     // Chris 21/07/2023 added "0.5-"
-        v[n][2] = vtnorm*(0.5-(random[rxnID]->uniform()));     // Chris 21/07/2023 added "0.5-"
+        if (dimension < 3) {
+          v[n][2] = 0.0;
+        }
+        else {
+          v[n][2] = vtnorm*(0.5-(random[rxnID]->uniform()));     // Chris 21/07/2023 added "0.5-"
+        }
         modify->create_attribute(n);
       }
       // globally update mega_glove and equivalences
