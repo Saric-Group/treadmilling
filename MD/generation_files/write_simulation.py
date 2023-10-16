@@ -131,7 +131,7 @@ elif ICNfils < 0:
 if arrest:
     f.write("Arrest after [s]:\t%.1f\n"%(arrtime))
 else:
-    f.write("Arrest for [s]:\t%.1f\n"%(arrtime))
+    f.write("Arrest for [s]:\t\t%.1f\n"%(arrtime))
 f.close()
 
 if ICNfils == 1:
