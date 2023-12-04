@@ -1,9 +1,0 @@
-#Post Depol3 
-
-2 atoms
-
-
-Types
-
-1 4
-2 4
