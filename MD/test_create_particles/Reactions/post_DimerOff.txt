@@ -1,9 +1,0 @@
-# Post molecule template for shrink reaction on dimer (dissolution)
-
-2 atoms
-
-
-Types
-
-1 2
-2 3
