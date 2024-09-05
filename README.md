@@ -1,6 +1,6 @@
 # Treadmilling filaments
 
-This repository contains the Molecular Dynamics and Dynamic Monte Carlo implementations of the coarse-grained treadmilling filaments model presented in ["Self-organisation of mortal filaments: the role of FtsZ treadmilling in bacterial division ring formation" (C. Vanhille-Campos et al. - in press)](https://doi.org/10.1101/2023.05.08.539808).
+This repository contains the Molecular Dynamics and Dynamic Monte Carlo implementations of the coarse-grained treadmilling filaments model presented in ["Self-organization of mortal filaments and its role in bacterial division ring formation" (C. Vanhille-Campos et al., 2024, Nature Physics)](https://doi.org/10.1038/s41567-024-02597-8).
 
 [MD](./MD) contains the Molecular Dynamics implementation, with all files necessary to generate and run treadmilling filaments simulations in LAMMPS. Note that a modified version of LAMMPS is required, which you can install from the same directory.
 
